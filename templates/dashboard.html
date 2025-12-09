@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Classroom App{% endblock %}
+
+{% block extra_css %}
+<style>
+    .class-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+    .class-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+    .add-class-btn {
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px dashed #667eea;
+        background: rgba(102, 126, 234, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-white">My Classes</h1>
+        <div>
+            <button class="btn btn-light me-2" onclick="showAddClassModal()">
+                <i class="bi bi-plus-circle"></i> Add Class
+            </button>
+            <a href="/logout" class="btn btn-outline-light">Logout</a>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for class in classes %}
+        <div class="col-md-4">
+            <div class="card class-card" onclick="window.location.href='/classroom/{{ class.id }}'">
+                <div class="card-body">
+                    <h5 class="card-title">{{ class.name }}</h5>
+                    <p class="card-text text-muted">Code: {{ class.class_code }}</p>
+                    <span class="badge bg-{{ 'success' if class.is_active else 'secondary' }}">
+                        {{ 'Active' if class.is_active else 'Inactive' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div class="col-md-4">
+            <div class="card add-class-btn" onclick="showAddClassModal()">
+                <div class="text-center">
+                    <i class="bi bi-plus-circle" style="font-size: 3rem; color: #667eea;"></i>
+                    <p class="mt-2">Add New Class</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Class Modal -->
+<div class="modal fade" id="addClassModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Class</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addClassForm">
+                    <div class="mb-3">
+                        <label for="className" class="form-label">Class Name</label>
+                        <input type="text" class="form-control" id="className" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="classCode" class="form-label">Class Code</label>
+                        <input type="text" class="form-control" id="classCode" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addClass()">Add Class</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showAddClassModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addClassModal'));
+    modal.show();
+}
+
+async function addClass() {
+    const name = document.getElementById('className').value;
+    const code = document.getElementById('classCode').value;
+    
+    const response = await fetch('/api/create_class', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, class_code: code})
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        location.reload();
+    } else {
+        alert(data.error || 'Failed to create class');
+    }
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Dashboard - {{ class_obj.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+    }
+    .poll-option {
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 10px;
+        background: #f8f9fa;
+        cursor: pointer;
+    }
+    .poll-option:hover {
+        background: #e9ecef;
+    }
+    .live-indicator {
+        width: 12px;
+        height: 12px;
+        background: #28a745;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="text-white">{{ class_obj.name }} <span class="live-indicator"></span> LIVE</h1>
+            <p class="text-white-50">Class Code: {{ class_obj.class_code }}</p>
+        </div>
+        <div>
+            <a href="/classroom/{{ class_obj.id }}" class="btn btn-light me-2">Back to Classroom</a>
+            <button class="btn btn-danger" onclick="stopClass()">Stop Class</button>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number" id="totalStudents">{{ students|length }}</div>
+                <div>Total Students</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number" id="presentStudents">0</div>
+                <div>Present</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number" id="handRaises">0</div>
+                <div>Hand Raises</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number" id="thumbsUp">0</div>
+                <div>Thumbs Up</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Poll/Quiz</h5>
+                </div>
+                <div class="card-body">
+                    <div id="pollArea">
+                        {% if active_poll %}
+                        <div id="activePoll">
+                            <h6>{{ active_poll.question }}</h6>
+                            <div id="pollResults"></div>
+                            <button class="btn btn-danger mt-3" onclick="stopPoll({{ active_poll.id }})">Stop Poll</button>
+                        </div>
+                        {% else %}
+                        <button class="btn btn-primary" onclick="showCreatePollModal()">Create Poll/Quiz</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Live Preferences</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="liveShowFirstNameOnly">
+                        <label class="form-check-label" for="liveShowFirstNameOnly">Show First Name Only</label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="liveQuietMode">
+                        <label class="form-check-label" for="liveQuietMode">Quiet Mode</label>
+                    </div>
+                    <button class="btn btn-primary" onclick="updateLiveSettings()">Update Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Poll Modal -->
+<div class="modal fade" id="createPollModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Poll/Quiz</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createPollForm">
+                    <div class="mb-3">
+                        <label for="pollQuestion" class="form-label">Question</label>
+                        <input type="text" class="form-control" id="pollQuestion" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Options</label>
+                        <input type="text" class="form-control mb-2" id="option1" placeholder="Option 1" required>
+                        <input type="text" class="form-control mb-2" id="option2" placeholder="Option 2" required>
+                        <input type="text" class="form-control mb-2" id="option3" placeholder="Option 3 (optional)">
+                        <input type="text" class="form-control mb-2" id="option4" placeholder="Option 4 (optional)">
+                    </div>
+                    <div class="mb-3">
+                        <label for="correctAnswer" class="form-label">Correct Answer (optional, for quiz)</label>
+                        <select class="form-control" id="correctAnswer">
+                            <option value="">No correct answer</option>
+                            <option value="0">Option 1</option>
+                            <option value="1">Option 2</option>
+                            <option value="2">Option 3</option>
+                            <option value="3">Option 4</option>
+                        </select>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="isAnonymous">
+                        <label class="form-check-label" for="isAnonymous">Anonymous Mode</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createPoll()">Start Poll</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+<script>
+const socket = io();
+const classId = {{ class_obj.id }};
+
+socket.on('connect', () => {
+    socket.emit('join_class', {class_id: classId});
+    updateStats();
+    setInterval(updateStats, 3000);
+});
+
+socket.on('student_joined', () => {
+    updateStats();
+});
+
+socket.on('student_interaction', () => {
+    updateStats();
+});
+
+socket.on('poll_started', (data) => {
+    location.reload();
+});
+
+socket.on('poll_stopped', () => {
+    location.reload();
+});
+
+socket.on('poll_response', (data) => {
+    updateStats();
+});
+
+async function updateStats() {
+    socket.emit('get_live_stats', {class_id: classId});
+}
+
+socket.on('live_stats', (data) => {
+    document.getElementById('presentStudents').textContent = data.present_students;
+    document.getElementById('handRaises').textContent = data.total_hand_raises;
+    document.getElementById('thumbsUp').textContent = data.total_thumbs_up;
+    
+    if (data.poll_stats) {
+        updatePollResults(data.poll_stats);
+    }
+});
+
+function updatePollResults(pollStats) {
+    const resultsDiv = document.getElementById('pollResults');
+    if (!resultsDiv) return;
+    
+    let html = '<div class="mt-3">';
+    pollStats.options.forEach((option, index) => {
+        const count = pollStats.option_counts[index] || 0;
+        const percentage = pollStats.total_responses > 0 ? (count / pollStats.total_responses * 100) : 0;
+        html += `
+            <div class="mb-2">
+                <div class="d-flex justify-content-between">
+                    <span>${option}</span>
+                    <span>${count} (${percentage.toFixed(1)}%)</span>
+                </div>
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar" role="progressbar" style="width: ${percentage}%"></div>
+                </div>
+            </div>
+        `;
+    });
+    html += `<p class="mt-2">Total Responses: ${pollStats.total_responses}</p></div>`;
+    resultsDiv.innerHTML = html;
+}
+
+function showCreatePollModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createPollModal'));
+    modal.show();
+}
+
+async function createPoll() {
+    const question = document.getElementById('pollQuestion').value;
+    const options = [
+        document.getElementById('option1').value,
+        document.getElementById('option2').value
+    ];
+    if (document.getElementById('option3').value) options.push(document.getElementById('option3').value);
+    if (document.getElementById('option4').value) options.push(document.getElementById('option4').value);
+    
+    const correctAnswer = document.getElementById('correctAnswer').value;
+    const isAnonymous = document.getElementById('isAnonymous').checked;
+    
+    const response = await fetch(`/api/create_poll/{{ class_obj.id }}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            question,
+            options,
+            correct_answer: correctAnswer ? parseInt(correctAnswer) : null,
+            is_anonymous: isAnonymous
+        })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        location.reload();
+    } else {
+        alert(data.error || 'Failed to create poll');
+    }
+}
+
+async function stopPoll(pollId) {
+    const response = await fetch(`/api/stop_poll/${pollId}`, {method: 'POST'});
+    const data = await response.json();
+    if (data.success) {
+        location.reload();
+    }
+}
+
+async function stopClass() {
+    if (confirm('Are you sure you want to stop the class?')) {
+        const response = await fetch(`/api/stop_class/{{ class_obj.id }}`, {method: 'POST'});
+        const data = await response.json();
+        if (data.success) {
+            window.location.href = `/classroom/{{ class_obj.id }}`;
+        }
+    }
+}
+
+async function updateLiveSettings() {
+    const data = {
+        show_first_name_only: document.getElementById('liveShowFirstNameOnly').checked,
+        quiet_mode: document.getElementById('liveQuietMode').checked
+    };
+    
+    const response = await fetch(`/api/update_settings/{{ class_obj.id }}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+        alert('Settings updated!');
+    }
+}
+</script>
+{% endblock %}
+

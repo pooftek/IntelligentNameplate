@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Classroom App{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="card" style="width: 400px; padding: 40px;">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold">Professor Login</h2>
+            <p class="text-muted">Welcome back!</p>
+        </div>
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+        <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;"></div>
+        <div class="text-center mt-3">
+            <p class="text-muted">Don't have an account? <a href="{{ url_for('register') }}" class="text-white">Register here</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const response = await fetch('/login', {
+        method: 'POST',
+        body: formData
+    });
+    const data = await response.json();
+    if (data.success) {
+        window.location.href = data.redirect;
+    } else {
+        document.getElementById('errorMessage').textContent = data.error || 'Login failed';
+        document.getElementById('errorMessage').style.display = 'block';
+    }
+});
+</script>
+{% endblock %}
+

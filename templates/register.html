@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Classroom App{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="card" style="width: 400px; padding: 40px;">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold">Professor Registration</h2>
+            <p class="text-muted">Create your account</p>
+        </div>
+        <form id="registerForm">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <div class="mb-3">
+                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Register</button>
+        </form>
+        <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;"></div>
+        <div id="successMessage" class="alert alert-success mt-3" style="display: none;"></div>
+        <div class="text-center mt-3">
+            <p class="text-muted">Already have an account? <a href="{{ url_for('login') }}" class="text-white">Login here</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    // Validate passwords match
+    if (password !== confirmPassword) {
+        document.getElementById('errorMessage').textContent = 'Passwords do not match';
+        document.getElementById('errorMessage').style.display = 'block';
+        return;
+    }
+    
+    // Validate password length
+    if (password.length < 6) {
+        document.getElementById('errorMessage').textContent = 'Password must be at least 6 characters long';
+        document.getElementById('errorMessage').style.display = 'block';
+        return;
+    }
+    
+    const formData = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        password: password
+    };
+    
+    try {
+        const response = await fetch('/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').textContent = 'Registration successful! Redirecting...';
+            document.getElementById('successMessage').style.display = 'block';
+            setTimeout(() => {
+                window.location.href = data.redirect;
+            }, 1000);
+        } else {
+            document.getElementById('errorMessage').textContent = data.error || 'Registration failed';
+            document.getElementById('errorMessage').style.display = 'block';
+        }
+    } catch (error) {
+        document.getElementById('errorMessage').textContent = 'An error occurred. Please try again.';
+        document.getElementById('errorMessage').style.display = 'block';
+    }
+});
+</script>
+{% endblock %}
+

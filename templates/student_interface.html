@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Nameplate</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+        .nameplate-container {
+            display: flex;
+            height: 100vh;
+        }
+        .screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            border: 2px solid #333;
+            position: relative;
+        }
+        .front-screen {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .back-screen {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .sleep-mode {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+        .login-screen {
+            display: none;
+        }
+        .login-screen.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .main-screen {
+            display: none;
+        }
+        .main-screen.active {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+        }
+        .student-name {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .class-id {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            transition: all 0.3s;
+        }
+        .control-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+        .signout-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            background: rgba(220, 53, 69, 0.8);
+            color: white;
+        }
+        .poll-screen {
+            display: none;
+        }
+        .poll-screen.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .poll-option {
+            width: 80%;
+            padding: 30px;
+            margin: 15px 0;
+            border-radius: 15px;
+            background: rgba(255,255,255,0.2);
+            cursor: pointer;
+            text-align: center;
+            font-size: 1.5rem;
+            transition: all 0.3s;
+        }
+        .poll-option:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        .poll-option.selected {
+            background: rgba(40, 167, 69, 0.8);
+        }
+        .color-feedback {
+            animation: colorPulse 1s;
+        }
+        @keyframes colorPulse {
+            0%, 100% { background: inherit; }
+            50% { background: rgba(40, 167, 69, 0.8); }
+        }
+        .battery-indicator {
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="nameplate-container">
+        <!-- Front Screen (Facing Professor) -->
+        <div class="screen front-screen">
+            <div class="sleep-mode" id="frontSleep">
+                <i class="bi bi-power"></i> Tap to wake
+            </div>
+            
+            <div class="login-screen" id="frontLogin">
+                <h3>Login</h3>
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="rfidInput" placeholder="Tap RFID card or enter student number">
+                </div>
+                <button class="btn btn-light" onclick="studentLogin()">Login</button>
+                <button class="btn btn-link text-white mt-2" onclick="showRegister()">Register New Student</button>
+            </div>
+            
+            <div class="main-screen" id="frontMain">
+                <div class="student-name" id="frontStudentName">Student Name</div>
+            </div>
+            
+            <div class="poll-screen" id="frontPoll">
+                <h4 id="pollQuestion">Question</h4>
+                <div id="frontPollOptions"></div>
+            </div>
+        </div>
+        
+        <!-- Back Screen (Facing Student) -->
+        <div class="screen back-screen">
+            <div class="sleep-mode" id="backSleep">
+                <i class="bi bi-power"></i> Tap to wake
+            </div>
+            
+            <div class="login-screen" id="backLogin">
+                <h3>Login</h3>
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="backRfidInput" placeholder="Tap RFID card or enter student number">
+                </div>
+                <button class="btn btn-light" onclick="studentLogin()">Login</button>
+                <button class="btn btn-link text-white mt-2" onclick="showRegister()">Register New Student</button>
+            </div>
+            
+            <div class="main-screen" id="backMain">
+                <div class="header">
+                    <div id="timeDisplay">00:00</div>
+                    <div class="battery-indicator">
+                        <i class="bi bi-battery-full"></i> <span id="batteryLevel">100%</span>
+                    </div>
+                </div>
+                
+                <div class="class-id" id="classIdDisplay">Class ID</div>
+                
+                <div class="controls">
+                    <button class="control-btn" onclick="sendInteraction('hand_raise')" title="Raise Hand">
+                        <i class="bi bi-hand-index"></i>
+                    </button>
+                    <button class="control-btn" onclick="sendInteraction('thumbs_up')" title="Thumbs Up">
+                        <i class="bi bi-hand-thumbs-up"></i>
+                    </button>
+                    <button class="control-btn" onclick="sendInteraction('thumbs_down')" title="Thumbs Down">
+                        <i class="bi bi-hand-thumbs-down"></i>
+                    </button>
+                </div>
+                
+                <button class="signout-btn" onclick="signOut()" title="Sign Out">
+                    <i class="bi bi-power"></i>
+                </button>
+            </div>
+            
+            <div class="poll-screen" id="backPoll">
+                <h4 id="backPollQuestion">Question</h4>
+                <div id="backPollOptions"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Register Modal -->
+    <div class="modal fade" id="registerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Register New Student</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label class="form-label" style="color: #000; font-weight: bold;">Student Number</label>
+                            <input type="text" class="form-control" id="regStudentNumber" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="color: #000; font-weight: bold;">First Name</label>
+                            <input type="text" class="form-control" id="regFirstName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="color: #000; font-weight: bold;">Last Name</label>
+                            <input type="text" class="form-control" id="regLastName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="color: #000; font-weight: bold;">RFID Card ID (optional)</label>
+                            <input type="text" class="form-control" id="regRfid">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="registerStudent()">Register</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Class Selection Modal -->
+    <div class="modal fade" id="classSelectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select Class</h5>
+                </div>
+                <div class="modal-body">
+                    <div id="classList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let currentStudent = null;
+        let currentClassId = null;
+        let currentPoll = null;
+        let showFirstNameOnly = false;
+        
+        // Wake up screens
+        document.getElementById('frontSleep').addEventListener('click', () => {
+            document.getElementById('frontSleep').style.display = 'none';
+            document.getElementById('frontLogin').classList.add('active');
+        });
+        
+        document.getElementById('backSleep').addEventListener('click', () => {
+            document.getElementById('backSleep').style.display = 'none';
+            document.getElementById('backLogin').classList.add('active');
+        });
+        
+        // Simulate RFID tap
+        function simulateRfidTap(rfidId) {
+            document.getElementById('rfidInput').value = rfidId;
+            document.getElementById('backRfidInput').value = rfidId;
+            studentLogin();
+        }
+        
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+            document.getElementById('timeDisplay').textContent = timeStr;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+        
+        // Simulate battery (for demo)
+        let batteryLevel = 100;
+        function updateBattery() {
+            batteryLevel = Math.max(20, batteryLevel - 0.01);
+            document.getElementById('batteryLevel').textContent = Math.round(batteryLevel) + '%';
+        }
+        setInterval(updateBattery, 60000);
+        
+        async function studentLogin() {
+            const rfidInput = document.getElementById('rfidInput').value || document.getElementById('backRfidInput').value;
+            
+            const response = await fetch('/api/student/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({
+                    rfid_card_id: rfidInput,
+                    student_number: rfidInput
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                currentStudent = data.student;
+                showClassSelection();
+            } else {
+                alert(data.error || 'Login failed');
+            }
+        }
+        
+        async function showClassSelection() {
+            const response = await fetch('/api/student/classes', {
+                credentials: 'include'
+            });
+            const classes = await response.json();
+            
+            if (classes.length === 0) {
+                alert('No active classes available');
+                return;
+            }
+            
+            const classListDiv = document.getElementById('classList');
+            classListDiv.innerHTML = classes.map(c => `
+                <button class="btn btn-primary w-100 mb-2" onclick="joinClass(${c.id})">
+                    ${c.name} (${c.class_code})
+                </button>
+            `).join('');
+            
+            const modal = new bootstrap.Modal(document.getElementById('classSelectModal'));
+            modal.show();
+        }
+        
+        async function joinClass(classId) {
+            const response = await fetch('/api/student/join_class', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({class_id: classId})
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                currentClassId = classId;
+                socket.emit('join_class', {class_id: classId});
+                showMainScreen();
+                bootstrap.Modal.getInstance(document.getElementById('classSelectModal')).hide();
+            } else {
+                alert(data.error || 'Failed to join class');
+            }
+        }
+        
+        function showMainScreen() {
+            document.getElementById('frontLogin').classList.remove('active');
+            document.getElementById('backLogin').classList.remove('active');
+            document.getElementById('frontMain').classList.add('active');
+            document.getElementById('backMain').classList.add('active');
+            
+            updateStudentName();
+            loadClassInfo();
+        }
+        
+        function updateStudentName() {
+            const name = showFirstNameOnly 
+                ? currentStudent.first_name 
+                : `${currentStudent.first_name} ${currentStudent.last_name}`;
+            document.getElementById('frontStudentName').textContent = name;
+        }
+        
+        async function loadClassInfo() {
+            // This would fetch class info, for now just show class ID
+            document.getElementById('classIdDisplay').textContent = `Class ID: ${currentClassId}`;
+        }
+        
+        async function sendInteraction(type) {
+            if (!currentClassId) {
+                console.error('No class ID - cannot send interaction');
+                alert('Not in a class. Please join a class first.');
+                return;
+            }
+            
+            try {
+            const response = await fetch('/api/student/interaction', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({
+                    class_id: currentClassId,
+                    type: type
+                })
+            });
+                
+                const data = await response.json();
+                if (data.success) {
+                    console.log('Interaction sent:', type);
+                } else {
+                    console.error('Interaction failed:', data.error);
+                    alert(data.error || 'Failed to send interaction');
+                }
+            } catch (error) {
+                console.error('Error sending interaction:', error);
+                alert('Error sending interaction. Please check console.');
+            }
+        }
+        
+        function signOut() {
+            if (confirm('Are you sure you want to sign out?')) {
+                currentStudent = null;
+                currentClassId = null;
+                location.reload();
+            }
+        }
+        
+        function showRegister() {
+            const modal = new bootstrap.Modal(document.getElementById('registerModal'));
+            modal.show();
+        }
+        
+        async function registerStudent() {
+            const response = await fetch('/api/student/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({
+                    student_number: document.getElementById('regStudentNumber').value,
+                    first_name: document.getElementById('regFirstName').value,
+                    last_name: document.getElementById('regLastName').value,
+                    rfid_card_id: document.getElementById('regRfid').value || null
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                currentStudent = data.student;
+                bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
+                showClassSelection();
+            } else {
+                alert(data.error || 'Registration failed');
+            }
+        }
+        
+        // Socket events
+        socket.on('settings_updated', (data) => {
+            showFirstNameOnly = data.show_first_name_only;
+            if (currentStudent) {
+                updateStudentName();
+            }
+        });
+        
+        socket.on('poll_started', (data) => {
+            currentPoll = data;
+            showPollScreen(data);
+        });
+        
+        socket.on('poll_stopped', () => {
+            currentPoll = null;
+            hidePollScreen();
+        });
+        
+        function showPollScreen(pollData) {
+            document.getElementById('frontMain').classList.remove('active');
+            document.getElementById('backMain').classList.remove('active');
+            document.getElementById('frontPoll').classList.add('active');
+            document.getElementById('backPoll').classList.add('active');
+            
+            document.getElementById('pollQuestion').textContent = pollData.question;
+            document.getElementById('backPollQuestion').textContent = pollData.question;
+            
+            const frontOptions = document.getElementById('frontPollOptions');
+            const backOptions = document.getElementById('backPollOptions');
+            
+            frontOptions.innerHTML = pollData.options.map((opt, idx) => `
+                <div class="poll-option" onclick="selectPollAnswer(${idx})">${opt}</div>
+            `).join('');
+            
+            backOptions.innerHTML = pollData.options.map((opt, idx) => `
+                <div class="poll-option" onclick="selectPollAnswer(${idx})">${opt}</div>
+            `).join('');
+        }
+        
+        function hidePollScreen() {
+            document.getElementById('frontPoll').classList.remove('active');
+            document.getElementById('backPoll').classList.remove('active');
+            document.getElementById('frontMain').classList.add('active');
+            document.getElementById('backMain').classList.add('active');
+        }
+        
+        async function selectPollAnswer(answerIndex) {
+            if (!currentPoll || !currentClassId) return;
+            
+            const response = await fetch('/api/student/poll_response', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({
+                    poll_id: currentPoll.poll_id,
+                    answer: answerIndex
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                // Show color feedback if not anonymous
+                if (!currentPoll.is_anonymous) {
+                    const color = data.is_correct ? '#28a745' : '#dc3545';
+                    document.querySelectorAll('.screen').forEach(screen => {
+                        screen.style.background = color;
+                        setTimeout(() => {
+                            screen.style.background = '';
+                        }, 1000);
+                    });
+                }
+                
+                // Disable options
+                document.querySelectorAll('.poll-option').forEach(opt => {
+                    opt.style.pointerEvents = 'none';
+                    if (opt.textContent === currentPoll.options[answerIndex]) {
+                        opt.classList.add('selected');
+                    }
+                });
+            }
+        }
+        
+        // Demo: Simulate RFID tap for testing
+        // Uncomment to test: simulateRfidTap('RFID123');
+    </script>
+</body>
+</html>
+

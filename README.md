@@ -36,21 +36,40 @@ A comprehensive web application for managing classroom participation, attendance
   - Anonymous mode support
 - **Real-time Updates**: All interactions logged and displayed on faculty dashboard
 
-## Installation
+## Quick Start
 
-1. Install Python dependencies:
-```bash
-pip install -r requirements.txt
-```
+### Download the Project
 
-2. Run the application:
-```bash
-python app.py
-```
+1. **Download from GitHub:**
+   - Visit: https://github.com/pooftek/IntelligentNameplate
+   - Click "Code" → "Download ZIP"
+   - Extract to a folder on your computer
 
-3. Access the application:
+   OR
+
+2. **Clone with Git:**
+   ```bash
+   git clone https://github.com/pooftek/IntelligentNameplate.git
+   cd IntelligentNameplate
+   ```
+
+### Installation
+
+1. **Install Python dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Run the application:**
+   ```bash
+   python app.py
+   ```
+
+3. **Access the application:**
    - Professor interface: http://localhost:5000
    - Student interface: http://localhost:5000/student
+
+📖 **For detailed setup instructions, see [SETUP.md](SETUP.md)**
 
 ## Default Login
 

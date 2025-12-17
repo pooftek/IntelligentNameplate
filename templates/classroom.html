@@ -4,96 +4,176 @@
 
 {% block extra_css %}
 <style>
+    body {
+        zoom: 1.25;
+        height: 100vh;
+        overflow: hidden;
+        margin: 0;
+    }
+    
+    .classroom-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .classroom-header {
+        flex-shrink: 0;
+    }
+    
+    .classroom-content {
+        flex: 1;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+        padding-top: 1rem;
+        padding-right: 0.5rem;
+    }
+    
+    .classroom-content::-webkit-scrollbar {
+        width: 12px;
+    }
+    
+    .classroom-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .classroom-content::-webkit-scrollbar-thumb {
+        background: #2A1A40;
+        border-radius: 6px;
+    }
+    
+    .classroom-content::-webkit-scrollbar-thumb:hover {
+        background: #3B2556;
+    }
+    
+    .responsive-title {
+        font-size: clamp(2rem, 6vw, 4rem);
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .classroom-header-title-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        min-width: 0;
+        flex: 1;
+    }
+    
+    .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: clamp(30px, 5vw, 40px);
+        width: 100%;
+        padding-bottom: 2rem;
+    }
+    
     .option-card {
-        padding: 30px;
-        margin: 15px 0;
+        background-color: white;
         border-radius: 15px;
+        padding: clamp(20px, 4vw, 50px) clamp(20px, 4vw, 50px);
         cursor: pointer;
-        transition: all 0.3s;
+        transition: transform 0.3s, box-shadow 0.3s;
         text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: clamp(120px, 15vh, 180px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
     }
+    
     .option-card:hover {
-        transform: scale(1.05);
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
     }
-    .start-class-btn {
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        font-size: 1.5rem;
-        z-index: 1000;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    
+    .option-icon {
+        width: clamp(80px, 12vw, 150px);
+        height: clamp(80px, 12vw, 150px);
+        margin-bottom: clamp(15px, 3vh, 30px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
-    .start-class-btn.active {
-        background: #dc3545;
+    
+    .option-icon i {
+        font-size: clamp(3rem, 8vw, 6rem);
+        background: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .option-card h5 {
+        color: black;
+        font-size: clamp(1.25rem, 3vw, 2rem);
+        font-weight: normal;
+        margin: 0;
+    }
+    
+    @media (max-width: 768px) {
+        .cards-grid {
+            grid-template-columns: 1fr;
+            gap: clamp(20px, 4vw, 40px);
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-white">{{ class_obj.name }}</h1>
-        <a href="/dashboard" class="btn btn-light">Back to Dashboard</a>
-    </div>
-    
-    <div class="row">
-        <div class="col-md-3 mb-4">
-            <div class="card option-card" onclick="showGradebook()">
-                <div class="text-center">
-                    <i class="bi bi-journal-text" style="font-size: 3rem; color: #667eea;"></i>
-                    <h5 class="mt-3">Gradebook</h5>
-                </div>
+<div class="classroom-container">
+    <div class="container py-5 classroom-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="classroom-header-title-container">
+                <h1 class="text-white responsive-title" id="classTitle">{{ class_obj.name }}</h1>
             </div>
-        </div>
-        
-        <div class="col-md-3 mb-4">
-            <div class="card option-card" onclick="showClassDetails()">
-                <div class="text-center">
-                    <i class="bi bi-people" style="font-size: 3rem; color: #667eea;"></i>
-                    <h5 class="mt-3">Class Details</h5>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3 mb-4">
-            <div class="card option-card" onclick="showSettings()">
-                <div class="text-center">
-                    <i class="bi bi-gear" style="font-size: 3rem; color: #667eea;"></i>
-                    <h5 class="mt-3">Settings</h5>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3 mb-4">
-            <div class="card option-card" onclick="showFacultyDashboard()">
-                <div class="text-center">
-                    <i class="bi bi-speedometer2" style="font-size: 3rem; color: #667eea;"></i>
-                    <h5 class="mt-3">View Dashboard</h5>
-                </div>
-            </div>
+            <a href="/dashboard" class="btn btn-outline-light" style="flex-shrink: 0;">Home</a>
         </div>
     </div>
     
-    <div id="contentArea" class="card mt-4" style="min-height: 400px; padding: 30px;">
-        <div class="text-center text-muted">
-            <i class="bi bi-arrow-up-circle" style="font-size: 4rem;"></i>
-            <p class="mt-3">Select an option above to get started</p>
+    <div class="container classroom-content">
+        <div class="cards-grid">
+        <div class="option-card" onclick="showClassDetails()">
+            <div class="option-icon">
+                <i class="bi bi-people-fill"></i>
+            </div>
+            <h5>Students</h5>
+        </div>
+        
+        <div class="option-card" onclick="handleStartClass()">
+            <div class="option-icon">
+                <i class="bi bi-play-circle-fill"></i>
+            </div>
+            <h5>Start Class</h5>
+        </div>
+        
+        <div class="option-card" onclick="showGradebook()">
+            <div class="option-icon">
+                <i class="bi bi-journal-text"></i>
+            </div>
+            <h5>Gradebook</h5>
+        </div>
+        
+        <div class="option-card" onclick="showSettings()">
+            <div class="option-icon">
+                <i class="bi bi-gear-fill"></i>
+            </div>
+            <h5>Settings</h5>
+        </div>
         </div>
     </div>
 </div>
-
-{% if class_obj.is_active %}
-<button class="btn btn-danger start-class-btn active" onclick="stopClass()" title="Stop Class">
-    <i class="bi bi-stop-fill"></i>
-</button>
-{% else %}
-<button class="btn btn-success start-class-btn" onclick="startClass()" title="Start Class">
-    <i class="bi bi-play-fill"></i>
-</button>
-{% endif %}
 
 <!-- Gradebook Modal -->
 <div class="modal fade" id="gradebookModal" tabindex="-1">
@@ -124,12 +204,12 @@
     </div>
 </div>
 
-<!-- Class Details Modal -->
+<!-- Students Modal -->
 <div class="modal fade" id="classDetailsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Class Details</h5>
+                <h5 class="modal-title">Students</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -162,10 +242,11 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Settings and Preferences</h5>
+                <h5 class="modal-title">Settings</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <h6 class="mb-3">Preferences</h6>
                 <form id="settingsForm">
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="showFirstNameOnly" 
@@ -182,6 +263,14 @@
                         </label>
                     </div>
                 </form>
+                
+                <hr class="my-4">
+                
+                <h6 class="mb-3 text-danger">Danger Zone</h6>
+                <button type="button" class="btn btn-danger" onclick="deleteClass()">
+                    <i class="bi bi-trash"></i> Delete Class
+                </button>
+                <p class="text-muted small mt-2">This action cannot be undone. All class data will be permanently deleted.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -192,6 +281,74 @@
 </div>
 
 <script>
+function adjustClassTitleFontSize() {
+    const title = document.getElementById('classTitle');
+    if (!title) return;
+    
+    // Get the container and available width
+    const container = title.closest('.classroom-header-title-container');
+    const headerContainer = title.closest('.container');
+    if (!container || !headerContainer) return;
+    
+    // Get the Home button width and gap
+    const homeButton = headerContainer.querySelector('.btn-outline-light');
+    const homeButtonWidth = homeButton ? homeButton.offsetWidth : 0;
+    const containerPadding = parseFloat(window.getComputedStyle(headerContainer).paddingLeft) + 
+                            parseFloat(window.getComputedStyle(headerContainer).paddingRight);
+    const gap = 16; // 1rem gap
+    
+    // Calculate available width for title
+    const headerWidth = headerContainer.offsetWidth;
+    const availableWidth = headerWidth - homeButtonWidth - gap - containerPadding;
+    
+    // Reset to default size to measure
+    title.style.fontSize = '';
+    const defaultSize = parseFloat(window.getComputedStyle(title).fontSize);
+    const minSize = defaultSize * 0.5; // Don't go below 50% of default
+    
+    // Binary search for optimal font size
+    let min = minSize;
+    let max = defaultSize;
+    let bestSize = defaultSize;
+    
+    // Create a temporary element to measure text width
+    const tempElement = title.cloneNode(true);
+    tempElement.style.visibility = 'hidden';
+    tempElement.style.position = 'absolute';
+    tempElement.style.whiteSpace = 'nowrap';
+    tempElement.style.width = 'auto';
+    document.body.appendChild(tempElement);
+    
+    while (max - min > 0.5) {
+        const testSize = (min + max) / 2;
+        tempElement.style.fontSize = testSize + 'px';
+        
+        if (tempElement.offsetWidth <= availableWidth) {
+            bestSize = testSize;
+            min = testSize;
+        } else {
+            max = testSize;
+        }
+    }
+    
+    document.body.removeChild(tempElement);
+    title.style.fontSize = bestSize + 'px';
+}
+
+// Adjust on load and resize
+window.addEventListener('load', adjustClassTitleFontSize);
+window.addEventListener('resize', adjustClassTitleFontSize);
+
+async function handleStartClass() {
+    {% if class_obj.is_active %}
+        if (confirm('Class is already active. Do you want to stop it?')) {
+            await stopClass();
+        }
+    {% else %}
+        await startClass();
+    {% endif %}
+}
+
 async function startClass() {
     const response = await fetch(`/api/start_class/{{ class_obj.id }}`, {method: 'POST'});
     const data = await response.json();
@@ -261,8 +418,20 @@ async function saveSettings() {
     }
 }
 
-function showFacultyDashboard() {
-    window.location.href = `/faculty_dashboard/{{ class_obj.id }}`;
+async function deleteClass() {
+    const className = '{{ class_obj.name }}';
+    if (confirm(`Are you sure you want to delete "${className}"? This action cannot be undone. All class data will be permanently deleted.`)) {
+        const response = await fetch(`/api/delete_class/{{ class_obj.id }}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+            alert('Class deleted successfully');
+            window.location.href = '/dashboard';
+        } else {
+            alert('Error deleting class: ' + (data.error || 'Unknown error'));
+        }
+    }
 }
 </script>
 {% endblock %}

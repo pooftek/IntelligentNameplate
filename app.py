@@ -179,6 +179,11 @@ def dashboard():
     classes = Class.query.filter_by(professor_id=current_user.id).all()
     return render_template('dashboard.html', classes=classes)
 
+@app.route('/preferences')
+@login_required
+def preferences():
+    return render_template('preferences.html')
+
 @app.route('/classroom/<int:class_id>')
 @login_required
 def classroom(class_id):
@@ -429,6 +434,44 @@ def create_class():
     db.session.commit()
     
     return jsonify({'success': True, 'class_id': class_obj.id})
+
+@app.route('/api/delete_class/<int:class_id>', methods=['DELETE'])
+@login_required
+def delete_class(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'})
+    
+    try:
+        # Delete all related records
+        # First, delete poll responses for polls in this class
+        polls = Poll.query.filter_by(class_id=class_id).all()
+        for poll in polls:
+            PollResponse.query.filter_by(poll_id=poll.id).delete()
+        
+        # Delete polls
+        Poll.query.filter_by(class_id=class_id).delete()
+        
+        # Delete participations
+        Participation.query.filter_by(class_id=class_id).delete()
+        
+        # Delete attendances
+        Attendance.query.filter_by(class_id=class_id).delete()
+        
+        # Delete enrollments
+        Enrollment.query.filter_by(class_id=class_id).delete()
+        
+        # Delete class settings
+        ClassSettings.query.filter_by(class_id=class_id).delete()
+        
+        # Finally, delete the class
+        db.session.delete(class_obj)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/add_student_to_class', methods=['POST'])
 @login_required

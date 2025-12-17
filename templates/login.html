@@ -2,12 +2,40 @@
 
 {% block title %}Login - Classroom App{% endblock %}
 
+{% block extra_css %}
+<style>
+    body {
+        zoom: 1.25;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        overflow: hidden;
+        padding-top: 15vh;
+    }
+    
+    .login-title {
+        font-size: clamp(1.75rem, 5vw, 2.5rem);
+        font-weight: bold;
+    }
+    
+    .login-card {
+        width: clamp(300px, 90vw, 450px);
+        padding: clamp(30px, 5vw, 50px);
+    }
+    
+    .login-subtitle {
+        font-size: clamp(0.9rem, 2vw, 1rem);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
-    <div class="card" style="width: 400px; padding: 40px;">
+<div class="card login-card">
         <div class="text-center mb-4">
-            <h2 class="fw-bold">Professor Login</h2>
-            <p class="text-muted">Welcome back!</p>
+            <h2 class="fw-bold login-title">Professor Login</h2>
+            <p class="text-muted login-subtitle">Welcome back!</p>
         </div>
         <form id="loginForm">
             <div class="mb-3">
@@ -24,7 +52,6 @@
         <div class="text-center mt-3">
             <p class="text-muted">Don't have an account? <a href="{{ url_for('register') }}" class="text-white">Register here</a></p>
         </div>
-    </div>
 </div>
 
 <script>

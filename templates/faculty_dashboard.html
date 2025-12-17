@@ -4,23 +4,39 @@
 
 {% block extra_css %}
 <style>
+    .responsive-title {
+        font-size: clamp(2rem, 6vw, 4rem);
+        font-weight: bold;
+    }
+    
     .stat-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 20px;
+        padding: clamp(15px, 3vw, 25px);
+        margin-bottom: clamp(15px, 3vw, 25px);
+    }
+    
+    .stat-card > div:not(.stat-number) {
+        font-size: clamp(0.875rem, 2vw, 1rem);
     }
     .stat-number {
-        font-size: 2.5rem;
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
         font-weight: bold;
     }
+    .card-header h5 {
+        font-size: clamp(1.1rem, 2.5vw, 1.25rem);
+    }
+    .card-body h6 {
+        font-size: clamp(1rem, 2vw, 1.1rem);
+    }
     .poll-option {
-        padding: 15px;
-        margin: 10px 0;
+        padding: clamp(12px, 2vw, 18px);
+        margin: clamp(8px, 1.5vw, 12px) 0;
         border-radius: 10px;
         background: #f8f9fa;
         cursor: pointer;
+        font-size: clamp(0.875rem, 2vw, 1rem);
     }
     .poll-option:hover {
         background: #e9ecef;
@@ -44,8 +60,8 @@
 <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="text-white">{{ class_obj.name }} <span class="live-indicator"></span> LIVE</h1>
-            <p class="text-white-50">Class Code: {{ class_obj.class_code }}</p>
+            <h1 class="text-white responsive-title">{{ class_obj.name }} <span class="live-indicator"></span> LIVE</h1>
+            <p class="text-white-50" style="font-size: clamp(0.875rem, 2vw, 1rem);">Class Code: {{ class_obj.class_code }}</p>
         </div>
         <div>
             <a href="/classroom/{{ class_obj.id }}" class="btn btn-light me-2">Back to Classroom</a>

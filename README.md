@@ -71,6 +71,8 @@ A comprehensive web application for managing classroom participation, attendance
 
 📖 **For detailed setup instructions, see [SETUP.md](SETUP.md)**
 
+🍓 **Running on Raspberry Pi? See [RASPBERRY_PI_SETUP.md](RASPBERRY_PI_SETUP.md)**
+
 ## Default Login
 
 - **Username**: professor

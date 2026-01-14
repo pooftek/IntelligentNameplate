@@ -20,6 +20,29 @@
     
     .dashboard-header {
         flex-shrink: 0;
+        min-width: min(100%, 1200px);
+    }
+    
+    .dashboard-header .container {
+        min-width: min(100%, 1200px);
+    }
+    
+    .dashboard-header .d-flex {
+        flex-wrap: nowrap;
+        gap: clamp(1rem, 2vw, 2rem);
+    }
+    
+    .dashboard-header .header-buttons {
+        flex-shrink: 0;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        min-width: fit-content;
+    }
+    
+    .dashboard-header h1 {
+        white-space: nowrap;
+        flex-shrink: 0;
     }
     
     .dashboard-content {
@@ -27,8 +50,9 @@
         overflow-y: auto;
         overflow-x: hidden;
         min-height: 0;
-        padding-top: 1rem;
-        padding-right: 0.5rem;
+        padding: 1rem;
+        padding-bottom: clamp(4rem, 15vh, 8rem);
+        display: block;
     }
     
     .dashboard-content::-webkit-scrollbar {
@@ -51,6 +75,9 @@
     .responsive-title {
         font-size: clamp(2rem, 6vw, 4rem);
         font-weight: bold;
+        white-space: nowrap;
+        line-height: 1.2;
+        margin: 0;
     }
     
     .row > [class*='col-'] {
@@ -60,7 +87,8 @@
         transition: transform 0.3s, box-shadow 0.3s;
         cursor: pointer;
         margin-bottom: clamp(30px, 5vw, 40px);
-        height: clamp(140px, 22vh, 200px);
+        height: clamp(170px, 22vh, 200px);
+        min-height: 170px;
         display: flex;
         flex-direction: column;
         width: 100%;
@@ -70,11 +98,13 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        overflow: hidden;
+        min-height: 0;
     }
     .class-card .card-title {
-        font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+        font-size: clamp(1.25rem, 2.8vw, 1.75rem);
         font-weight: bold;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0;
         overflow: hidden;
         display: -webkit-box;
         -webkit-line-clamp: 2;
@@ -84,6 +114,13 @@
     .class-card .card-text {
         font-size: clamp(0.875rem, 1.8vw, 1rem);
     }
+    .class-card .class-code {
+        font-size: clamp(0.875rem, 1.9vw, 1.125rem);
+        margin-bottom: 0.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
     .row > [class*='col-'] {
         padding-left: 20px;
         padding-right: 20px;
@@ -91,6 +128,11 @@
     .class-card .status-badge {
         margin-top: auto;
         align-self: flex-start;
+        font-size: clamp(0.7rem, 1.4vw, 0.8rem);
+        padding: clamp(0.2rem, 0.45vw, 0.35rem) clamp(0.45rem, 0.9vw, 0.7rem);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .class-card:hover {
         transform: translateY(-5px);
@@ -116,9 +158,11 @@
     }
     .modal-footer-btn {
         height: 38px;
+        min-width: 120px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        border-radius: 0.375rem;
     }
     .header-buttons .btn {
         height: 38px;
@@ -167,7 +211,7 @@
     </div>
     
     <div class="dashboard-content">
-        <div class="container pb-5">
+        <div class="container">
             <div class="row">
         {% for class in classes %}
         <div class="col-md-4">
@@ -177,7 +221,7 @@
                         <h5 class="card-title">{{ class.name }}</h5>
                     </div>
                     <div style="margin-top: auto;">
-                        <p class="card-text text-muted" style="margin-bottom: 0.5rem;">Course Code: {{ class.class_code }}</p>
+                        <p class="class-code text-muted" style="margin-bottom: 0.5rem;">{{ class.class_code }}</p>
                         <span class="badge bg-{{ 'success' if class.is_active else 'secondary' }} status-badge">
                             {{ 'Active' if class.is_active else 'Inactive' }}
                         </span>
@@ -211,7 +255,7 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer" style="justify-content: space-between;">
+            <div class="modal-footer">
                 <button type="button" class="btn btn-light modal-footer-btn" data-bs-dismiss="modal" style="background-color: #dee2e6; color: #495057;">cancel</button>
                 <button type="button" class="btn btn-primary modal-footer-btn fw-bold" onclick="addClass()">Add Class</button>
             </div>
@@ -243,8 +287,8 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer" style="justify-content: space-between;">
-                <button type="button" class="btn btn-light modal-footer-btn" data-bs-dismiss="modal" style="background-color: #dee2e6; color: #495057;">cancel</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light modal-footer-btn" data-bs-dismiss="modal" style="background-color: #dee2e6; color: #495057;">close</button>
                 <button type="button" class="btn btn-primary modal-footer-btn fw-bold" onclick="savePreferences()">Save Settings</button>
             </div>
         </div>

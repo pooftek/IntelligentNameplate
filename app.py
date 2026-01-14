@@ -30,6 +30,7 @@ class Student(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_number = db.Column(db.String(50), unique=True, nullable=False)
     first_name = db.Column(db.String(100), nullable=False)
+    preferred_name = db.Column(db.String(100), nullable=True)
     last_name = db.Column(db.String(100), nullable=False)
     rfid_card_id = db.Column(db.String(100), unique=True, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -101,6 +102,13 @@ class ClassSettings(db.Model):
     show_first_name_only = db.Column(db.Boolean, default=False)
     quiet_mode = db.Column(db.Boolean, default=False)
     class_obj = db.relationship('Class', backref=db.backref('settings', uselist=False))
+
+class ClassSession(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    end_time = db.Column(db.DateTime, nullable=True)
+    class_obj = db.relationship('Class', backref=db.backref('sessions', lazy=True))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -203,6 +211,28 @@ def classroom(class_id):
     
     return render_template('classroom.html', class_obj=class_obj, students=students, settings=settings)
 
+@app.route('/classroom/<int:class_id>/students')
+@login_required
+def students_list(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return redirect(url_for('dashboard'))
+    
+    students = db.session.query(Student).join(Enrollment).filter(
+        Enrollment.class_id == class_id
+    ).order_by(Student.last_name, Student.first_name).all()
+    
+    return render_template('students_list.html', class_obj=class_obj, students=students)
+
+@app.route('/classroom/<int:class_id>/class_data')
+@login_required
+def class_data(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return redirect(url_for('dashboard'))
+    
+    return render_template('class_data.html', class_obj=class_obj)
+
 @app.route('/api/start_class/<int:class_id>', methods=['POST'])
 @login_required
 def start_class(class_id):
@@ -211,6 +241,13 @@ def start_class(class_id):
         return jsonify({'success': False, 'error': 'Unauthorized'})
     
     class_obj.is_active = True
+    
+    # Create a new class session
+    session_record = ClassSession(
+        class_id=class_id,
+        start_time=datetime.utcnow()
+    )
+    db.session.add(session_record)
     db.session.commit()
     
     socketio.emit('class_started', {'class_id': class_id, 'class_code': class_obj.class_code}, room=f'class_{class_id}')
@@ -225,6 +262,16 @@ def stop_class(class_id):
         return jsonify({'success': False, 'error': 'Unauthorized'})
     
     class_obj.is_active = False
+    
+    # Update the active session with end time
+    active_session = ClassSession.query.filter_by(
+        class_id=class_id,
+        end_time=None
+    ).order_by(ClassSession.start_time.desc()).first()
+    
+    if active_session:
+        active_session.end_time = datetime.utcnow()
+    
     db.session.commit()
     
     # Update gradebook with participation data
@@ -336,6 +383,91 @@ def get_gradebook(class_id):
     
     return jsonify(gradebook_data)
 
+@app.route('/api/class_metrics/<int:class_id>')
+@login_required
+def get_class_metrics(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    sessions = ClassSession.query.filter_by(class_id=class_id).order_by(ClassSession.start_time.desc()).all()
+    
+    sessions_data = []
+    for session in sessions:
+        session_date = session.start_time.date()
+        
+        # Get engagement metrics from Participation records for this date
+        participations = Participation.query.filter_by(
+            class_id=class_id,
+            date=session_date
+        ).all()
+        
+        total_hand_raises = sum(p.hand_raises or 0 for p in participations)
+        total_thumbs_up = sum(p.thumbs_up or 0 for p in participations)
+        total_thumbs_down = sum(p.thumbs_down or 0 for p in participations)
+        
+        # Get poll results for polls created during this session
+        session_start = session.start_time
+        session_end = session.end_time if session.end_time else datetime.utcnow()
+        
+        polls = Poll.query.filter(
+            Poll.class_id == class_id,
+            Poll.created_at >= session_start,
+            Poll.created_at <= session_end
+        ).all()
+        
+        poll_results = []
+        for poll in polls:
+            responses = PollResponse.query.filter_by(poll_id=poll.id).all()
+            option_counts = {}
+            options = json.loads(poll.options)
+            for i in range(len(options)):
+                option_counts[i] = sum(1 for r in responses if r.answer == i)
+            
+            poll_results.append({
+                'question': poll.question,
+                'options': options,
+                'option_counts': option_counts,
+                'total_responses': len(responses)
+            })
+        
+        # Get attendance list with sign in/out times
+        attendances = Attendance.query.filter_by(
+            class_id=class_id,
+            date=session_date
+        ).all()
+        
+        attendance_list = []
+        for att in attendances:
+            student = Student.query.get(att.student_id)
+            # For now, use timestamp as sign-in time
+            # In a more complete system, you might want separate sign-in/sign-out records
+            sign_in_time = att.timestamp
+            sign_out_time = None  # Could be implemented with a separate model
+            
+            attendance_list.append({
+                'student_number': student.student_number,
+                'student_name': f"{student.first_name} {student.last_name}",
+                'sign_in_time': sign_in_time.isoformat() if sign_in_time else None,
+                'sign_out_time': sign_out_time.isoformat() if sign_out_time else None,
+                'present': att.present
+            })
+        
+        sessions_data.append({
+            'session_id': session.id,
+            'start_time': session.start_time.isoformat(),
+            'end_time': session.end_time.isoformat() if session.end_time else None,
+            'engagement_metrics': {
+                'hands_raised': total_hand_raises,
+                'thumbs_up': total_thumbs_up,
+                'thumbs_down': total_thumbs_down
+            },
+            'poll_results': poll_results,
+            'attendance_list': attendance_list
+        })
+    
+    return jsonify(sessions_data)
+
 @app.route('/api/update_settings/<int:class_id>', methods=['POST'])
 @login_required
 def update_settings(class_id):
@@ -349,6 +481,19 @@ def update_settings(class_id):
         db.session.add(settings)
     
     data = request.get_json()
+    
+    # Update class name and code if provided
+    if 'class_name' in data:
+        class_obj.name = data.get('class_name')
+    if 'class_code' in data:
+        new_class_code = data.get('class_code')
+        # Check if class code is unique (excluding current class)
+        existing_class = Class.query.filter_by(class_code=new_class_code).first()
+        if existing_class and existing_class.id != class_id:
+            return jsonify({'success': False, 'error': 'Class code already exists'})
+        class_obj.class_code = new_class_code
+    
+    # Update settings
     settings.show_first_name_only = data.get('show_first_name_only', False)
     settings.quiet_mode = data.get('quiet_mode', False)
     
@@ -789,9 +934,39 @@ def on_get_live_stats(data):
         'poll_stats': poll_stats
     })
 
+def migrate_database():
+    """Add missing columns and tables to existing database."""
+    from sqlalchemy import inspect, text
+    
+    try:
+        inspector = inspect(db.engine)
+        table_names = inspector.get_table_names()
+        
+        # Check if student table exists and if preferred_name column exists
+        if 'student' in table_names:
+            student_columns = [col['name'] for col in inspector.get_columns('student')]
+            if 'preferred_name' not in student_columns:
+                try:
+                    db.session.execute(text('ALTER TABLE student ADD COLUMN preferred_name VARCHAR(100)'))
+                    db.session.commit()
+                    print("✓ Added preferred_name column to student table")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"✗ Error adding preferred_name column: {e}")
+        
+        # Ensure class_session table exists - create_all will handle this
+        # This is just a check to print a message
+        if 'class_session' not in table_names:
+            # Create all tables including new ones
+            db.create_all()
+            print("✓ Created class_session table")
+    except Exception as e:
+        print(f"✗ Error during database migration: {e}")
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        migrate_database()
         
         # Create a default professor for testing
         if not Professor.query.first():

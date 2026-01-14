@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}Class Data - {{ class_obj.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        zoom: 1.25;
+        height: 100vh;
+        overflow: hidden;
+        margin: 0;
+    }
+    
+    .class-data-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .class-data-header {
+        flex-shrink: 0;
+        padding: 1.5rem 0;
+    }
+    
+    .class-data-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+        padding: 1rem;
+        background-color: white;
+        margin: 0 1rem 1rem 1rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .class-data-content::-webkit-scrollbar {
+        width: 12px;
+    }
+    
+    .class-data-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .class-data-content::-webkit-scrollbar-thumb {
+        background: #2A1A40;
+        border-radius: 6px;
+    }
+    
+    .class-data-content::-webkit-scrollbar-thumb:hover {
+        background: #3B2556;
+    }
+    
+    .nav-tabs {
+        border-bottom: 2px solid #2A1A40;
+        margin-bottom: 1.5rem;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #2A1A40;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        border-bottom-color: rgba(42, 26, 64, 0.3);
+        color: #3B2556;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #2A1A40;
+        border-bottom-color: #2A1A40;
+        background-color: transparent;
+    }
+    
+    .table thead th {
+        background-color: #2A1A40;
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 1rem;
+    }
+    
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+    }
+    
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(59, 37, 86, 0.05);
+    }
+    
+    .table-striped tbody tr:hover {
+        background-color: rgba(59, 37, 86, 0.1);
+    }
+    
+    .session-card {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .session-header {
+        border-bottom: 2px solid #2A1A40;
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .metric-card {
+        background-color: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .metric-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2A1A40;
+    }
+    
+    .poll-result-card {
+        background-color: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .poll-question {
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: #2A1A40;
+    }
+    
+    .poll-option {
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .attendance-table {
+        margin-top: 1rem;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="class-data-container">
+    <div class="container class-data-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <a href="/classroom/{{ class_obj.id }}" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+                <h1 class="text-white mb-0">Class Data - {{ class_obj.name }}</h1>
+            </div>
+        </div>
+    </div>
+    
+    <div class="class-data-content">
+        <ul class="nav nav-tabs" id="classDataTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="gradebook-tab" data-bs-toggle="tab" data-bs-target="#gradebook" type="button" role="tab" aria-controls="gradebook" aria-selected="true">Gradebook</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="metrics-tab" data-bs-toggle="tab" data-bs-target="#metrics" type="button" role="tab" aria-controls="metrics" aria-selected="false">Class Metrics</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="classDataTabContent">
+            <!-- Gradebook Tab -->
+            <div class="tab-pane fade show active" id="gradebook" role="tabpanel" aria-labelledby="gradebook-tab">
+                <div id="gradebookContent">
+                    <div class="loading">Loading gradebook data...</div>
+                </div>
+            </div>
+            
+            <!-- Class Metrics Tab -->
+            <div class="tab-pane fade" id="metrics" role="tabpanel" aria-labelledby="metrics-tab">
+                <div id="metricsContent">
+                    <div class="loading">Loading class metrics...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let classId = {{ class_obj.id }};
+
+// Load gradebook data
+async function loadGradebook() {
+    try {
+        const response = await fetch(`/api/gradebook/${classId}`);
+        const data = await response.json();
+        
+        const content = document.getElementById('gradebookContent');
+        
+        if (data.length === 0) {
+            content.innerHTML = '<div class="text-center text-muted p-4">No gradebook data available.</div>';
+            return;
+        }
+        
+        let html = `
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Student Number</th>
+                        <th>Instructor Participation</th>
+                        <th>Peer Participation</th>
+                        <th>Poll Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        data.forEach(student => {
+            html += `
+                <tr>
+                    <td>${student.name}</td>
+                    <td>${student.student_number}</td>
+                    <td>${student.instructor_participation.toFixed(2)}</td>
+                    <td>${student.peer_participation.toFixed(2)}</td>
+                    <td>${student.poll_grade.toFixed(2)}%</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                </tbody>
+            </table>
+        `;
+        
+        content.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading gradebook:', error);
+        document.getElementById('gradebookContent').innerHTML = '<div class="text-center text-danger p-4">Error loading gradebook data.</div>';
+    }
+}
+
+// Load class metrics
+async function loadMetrics() {
+    try {
+        const response = await fetch(`/api/class_metrics/${classId}`);
+        const data = await response.json();
+        
+        const content = document.getElementById('metricsContent');
+        
+        if (data.length === 0) {
+            content.innerHTML = '<div class="text-center text-muted p-4">No class sessions available.</div>';
+            return;
+        }
+        
+        let html = '';
+        
+        data.forEach(session => {
+            const startTime = new Date(session.start_time);
+            const endTime = session.end_time ? new Date(session.end_time) : null;
+            
+            html += `
+                <div class="session-card">
+                    <div class="session-header">
+                        <h5>Class Session - ${startTime.toLocaleString()}</h5>
+                        <div class="text-muted">
+                            <strong>Start:</strong> ${startTime.toLocaleString()}<br>
+                            <strong>End:</strong> ${endTime ? endTime.toLocaleString() : 'In Progress'}
+                        </div>
+                    </div>
+                    
+                    <h6 class="mb-3">Engagement Metrics</h6>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Hands Raised</div>
+                            <div class="metric-value">${session.engagement_metrics.hands_raised}</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Thumbs Up</div>
+                            <div class="metric-value">${session.engagement_metrics.thumbs_up}</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Thumbs Down</div>
+                            <div class="metric-value">${session.engagement_metrics.thumbs_down}</div>
+                        </div>
+                    </div>
+            `;
+            
+            if (session.poll_results && session.poll_results.length > 0) {
+                html += '<h6 class="mb-3 mt-4">Poll Results</h6>';
+                session.poll_results.forEach(poll => {
+                    html += `
+                        <div class="poll-result-card">
+                            <div class="poll-question">${poll.question}</div>
+                            <div class="poll-options">
+                    `;
+                    poll.options.forEach((option, index) => {
+                        const count = poll.option_counts[index] || 0;
+                        html += `
+                            <div class="poll-option">
+                                <strong>${option}:</strong> ${count} ${count === 1 ? 'response' : 'responses'}
+                            </div>
+                        `;
+                    });
+                    html += `
+                                <div class="text-muted mt-2">Total Responses: ${poll.total_responses}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<div class="text-muted mb-3">No polls conducted during this session.</div>';
+            }
+            
+            if (session.attendance_list && session.attendance_list.length > 0) {
+                html += `
+                    <h6 class="mb-3 mt-4">Attendance List</h6>
+                    <table class="table table-striped attendance-table">
+                        <thead>
+                            <tr>
+                                <th>Student Number</th>
+                                <th>Student Name</th>
+                                <th>Sign In Time</th>
+                                <th>Sign Out Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                session.attendance_list.forEach(att => {
+                    const signInTime = att.sign_in_time ? new Date(att.sign_in_time).toLocaleString() : '-';
+                    const signOutTime = att.sign_out_time ? new Date(att.sign_out_time).toLocaleString() : '-';
+                    html += `
+                        <tr>
+                            <td>${att.student_number}</td>
+                            <td>${att.student_name}</td>
+                            <td>${signInTime}</td>
+                            <td>${signOutTime}</td>
+                            <td>${att.present ? '<span class="badge bg-success">Present</span>' : '<span class="badge bg-danger">Absent</span>'}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                html += '<div class="text-muted mb-3">No attendance records for this session.</div>';
+            }
+            
+            html += '</div>';
+        });
+        
+        content.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading metrics:', error);
+        document.getElementById('metricsContent').innerHTML = '<div class="text-center text-danger p-4">Error loading class metrics.</div>';
+    }
+}
+
+// Load data when tab is shown
+document.addEventListener('DOMContentLoaded', function() {
+    // Load gradebook initially
+    loadGradebook();
+    
+    // Load metrics when that tab is clicked
+    const metricsTab = document.getElementById('metrics-tab');
+    metricsTab.addEventListener('shown.bs.tab', function() {
+        loadMetrics();
+    });
+});
+</script>
+{% endblock %}
+

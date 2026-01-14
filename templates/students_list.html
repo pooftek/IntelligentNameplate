@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Students - {{ class_obj.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        zoom: 1.25;
+        height: 100vh;
+        overflow: hidden;
+        margin: 0;
+    }
+    
+    .students-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .students-header {
+        flex-shrink: 0;
+        padding: 1.5rem 0;
+    }
+    
+    .students-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+        padding: 1rem;
+        background-color: white;
+        margin: 0 1rem 1rem 1rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .students-content::-webkit-scrollbar {
+        width: 12px;
+    }
+    
+    .students-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .students-content::-webkit-scrollbar-thumb {
+        background: #2A1A40;
+        border-radius: 6px;
+    }
+    
+    .students-content::-webkit-scrollbar-thumb:hover {
+        background: #3B2556;
+    }
+    
+    .table-container {
+        width: 100%;
+    }
+    
+    .table thead th {
+        background-color: #2A1A40;
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 1rem;
+    }
+    
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+    }
+    
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(59, 37, 86, 0.05);
+    }
+    
+    .table-striped tbody tr:hover {
+        background-color: rgba(59, 37, 86, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="students-container">
+    <div class="container students-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <a href="/classroom/{{ class_obj.id }}" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+                <h1 class="text-white mb-0">Students - {{ class_obj.name }}</h1>
+            </div>
+        </div>
+    </div>
+    
+    <div class="students-content">
+        <div class="table-container">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Student Number</th>
+                        <th>First Name</th>
+                        <th>Preferred Name</th>
+                        <th>Last Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td>{{ student.student_number }}</td>
+                        <td>{{ student.first_name }}</td>
+                        <td>{{ student.preferred_name or '-' }}</td>
+                        <td>{{ student.last_name }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if students|length == 0 %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">No students enrolled in this class.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

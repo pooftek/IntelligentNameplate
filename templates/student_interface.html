@@ -439,8 +439,23 @@
             }
         }
         
-        function signOut() {
+        async function signOut() {
             if (confirm('Are you sure you want to sign out?')) {
+                // Log leave time if in a class
+                if (currentClassId) {
+                    try {
+                        await fetch('/api/student/logout', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                class_id: currentClassId
+                            })
+                        });
+                    } catch (error) {
+                        console.error('Error logging out:', error);
+                    }
+                }
                 currentStudent = null;
                 currentClassId = null;
                 location.reload();

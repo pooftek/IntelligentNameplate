@@ -132,6 +132,11 @@
                         <input class="form-check-input" type="checkbox" id="liveQuietMode">
                         <label class="form-check-label" for="liveQuietMode">Quiet Mode</label>
                     </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="liveExcludeFromGrading">
+                        <label class="form-check-label" for="liveExcludeFromGrading">Exclude This Session From Grading</label>
+                        <small class="form-text text-muted d-block">If enabled, this session won't count toward attendance grades and peer grading will be disabled.</small>
+                    </div>
                     <button class="btn btn-primary" onclick="updateLiveSettings()">Update Settings</button>
                 </div>
             </div>
@@ -169,6 +174,11 @@
                             <option value="2">Option 3</option>
                             <option value="3">Option 4</option>
                         </select>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="isGraded">
+                        <label class="form-check-label" for="isGraded">Graded (Counts toward student grades)</label>
+                        <small class="form-text text-muted d-block">If unchecked, this poll won't affect student poll grades.</small>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="isAnonymous">
@@ -268,6 +278,7 @@ async function createPoll() {
     if (document.getElementById('option4').value) options.push(document.getElementById('option4').value);
     
     const correctAnswer = document.getElementById('correctAnswer').value;
+    const isGraded = document.getElementById('isGraded').checked;
     const isAnonymous = document.getElementById('isAnonymous').checked;
     
     const response = await fetch(`/api/create_poll/{{ class_obj.id }}`, {
@@ -277,6 +288,7 @@ async function createPoll() {
             question,
             options,
             correct_answer: correctAnswer ? parseInt(correctAnswer) : null,
+            is_graded: isGraded,
             is_anonymous: isAnonymous
         })
     });
@@ -310,7 +322,8 @@ async function stopClass() {
 async function updateLiveSettings() {
     const data = {
         show_first_name_only: document.getElementById('liveShowFirstNameOnly').checked,
-        quiet_mode: document.getElementById('liveQuietMode').checked
+        quiet_mode: document.getElementById('liveQuietMode').checked,
+        exclude_from_grading: document.getElementById('liveExcludeFromGrading').checked
     };
     
     const response = await fetch(`/api/update_settings/{{ class_obj.id }}`, {

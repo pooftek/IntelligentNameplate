@@ -168,6 +168,69 @@
         padding: 2rem;
         color: #6c757d;
     }
+    
+    .grading-form {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .grading-form .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .grading-form label {
+        font-weight: 600;
+        color: #2A1A40;
+        margin-bottom: 0.5rem;
+    }
+    
+    .grading-form .form-control {
+        border: 2px solid #dee2e6;
+        border-radius: 5px;
+        padding: 0.75rem;
+    }
+    
+    .grading-form .form-control:focus {
+        border-color: #2A1A40;
+        box-shadow: 0 0 0 0.2rem rgba(42, 26, 64, 0.25);
+    }
+    
+    .weight-total {
+        background-color: #f8f9fa;
+        border: 2px solid #2A1A40;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        text-align: center;
+    }
+    
+    .weight-total-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+    
+    .weight-total-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2A1A40;
+    }
+    
+    .weight-total.valid {
+        border-color: #28a745;
+        background-color: #d4edda;
+    }
+    
+    .weight-total.invalid {
+        border-color: #dc3545;
+        background-color: #f8d7da;
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
 </style>
 {% endblock %}
 
@@ -190,6 +253,9 @@
                 <button class="nav-link active" id="gradebook-tab" data-bs-toggle="tab" data-bs-target="#gradebook" type="button" role="tab" aria-controls="gradebook" aria-selected="true">Gradebook</button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="grading-tab" data-bs-toggle="tab" data-bs-target="#grading" type="button" role="tab" aria-controls="grading" aria-selected="false">Grading</button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="metrics-tab" data-bs-toggle="tab" data-bs-target="#metrics" type="button" role="tab" aria-controls="metrics" aria-selected="false">Class Metrics</button>
             </li>
         </ul>
@@ -197,8 +263,20 @@
         <div class="tab-content" id="classDataTabContent">
             <!-- Gradebook Tab -->
             <div class="tab-pane fade show active" id="gradebook" role="tabpanel" aria-labelledby="gradebook-tab">
+                <div class="mb-3">
+                    <button class="btn btn-primary" onclick="exportGradebook()">
+                        <i class="bi bi-download"></i> Export Gradebook to Excel
+                    </button>
+                </div>
                 <div id="gradebookContent">
                     <div class="loading">Loading gradebook data...</div>
+                </div>
+            </div>
+            
+            <!-- Grading Tab -->
+            <div class="tab-pane fade" id="grading" role="tabpanel" aria-labelledby="grading-tab">
+                <div id="gradingContent">
+                    <div class="loading">Loading grading weights...</div>
                 </div>
             </div>
             
@@ -236,9 +314,11 @@ async function loadGradebook() {
                     <tr>
                         <th>Student Name</th>
                         <th>Student Number</th>
+                        <th>Attendance Grade</th>
                         <th>Instructor Participation</th>
                         <th>Peer Participation</th>
                         <th>Poll Grade</th>
+                        <th>Overall Grade</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -249,9 +329,11 @@ async function loadGradebook() {
                 <tr>
                     <td>${student.name}</td>
                     <td>${student.student_number}</td>
+                    <td>${student.attendance_grade.toFixed(2)}%</td>
                     <td>${student.instructor_participation.toFixed(2)}</td>
                     <td>${student.peer_participation.toFixed(2)}</td>
                     <td>${student.poll_grade.toFixed(2)}%</td>
+                    <td><strong>${student.overall_grade.toFixed(2)}%</strong></td>
                 </tr>
             `;
         });
@@ -388,10 +470,197 @@ async function loadMetrics() {
     }
 }
 
+// Load grading weights
+async function loadGradingWeights() {
+    try {
+        const response = await fetch(`/api/grading_weights/${classId}`);
+        const data = await response.json();
+        
+        const content = document.getElementById('gradingContent');
+        
+        let html = `
+            <div class="grading-form">
+                <h4 class="mb-4">Grading Weights Configuration</h4>
+                <p class="text-muted mb-4">Set the percentage weights for each component of the overall grade. The total must equal 100%.</p>
+                
+                <form id="gradingWeightsForm">
+                    <div class="form-group">
+                        <label for="attendance_weight">Attendance Weight (%)</label>
+                        <input type="number" class="form-control" id="attendance_weight" name="attendance_weight" 
+                               value="${data.attendance_weight}" min="0" max="100" step="0.1" required>
+                        <div class="help-text">Percentage of overall grade from attendance</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="instructor_participation_weight">Instructor Participation Weight (%)</label>
+                        <input type="number" class="form-control" id="instructor_participation_weight" name="instructor_participation_weight" 
+                               value="${data.instructor_participation_weight}" min="0" max="100" step="0.1" required>
+                        <div class="help-text">Percentage of overall grade from instructor participation grades</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="peer_participation_weight">Peer Participation Weight (%)</label>
+                        <input type="number" class="form-control" id="peer_participation_weight" name="peer_participation_weight" 
+                               value="${data.peer_participation_weight}" min="0" max="100" step="0.1" required>
+                        <div class="help-text">Percentage of overall grade from peer participation grades</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="poll_weight">Poll Grade Weight (%)</label>
+                        <input type="number" class="form-control" id="poll_weight" name="poll_weight" 
+                               value="${data.poll_weight}" min="0" max="100" step="0.1" required>
+                        <div class="help-text">Percentage of overall grade from poll performance</div>
+                    </div>
+                    
+                    <div class="weight-total" id="weightTotal">
+                        <div class="weight-total-label">Total Weight</div>
+                        <div class="weight-total-value" id="totalWeightValue">100%</div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn" style="background-color: #2A1A40; color: white; padding: 0.75rem 2rem;">
+                            Save Grading Weights
+                        </button>
+                        <button type="button" class="btn btn-secondary ms-2" onclick="resetGradingWeights()">
+                            Reset to Default (25% each)
+                        </button>
+                    </div>
+                    
+                    <div id="gradingMessage" class="mt-3"></div>
+                </form>
+            </div>
+        `;
+        
+        content.innerHTML = html;
+        
+        // Add event listeners for real-time total calculation
+        const inputs = ['attendance_weight', 'instructor_participation_weight', 'peer_participation_weight', 'poll_weight'];
+        inputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', calculateTotalWeight);
+        });
+        
+        // Add form submit handler
+        document.getElementById('gradingWeightsForm').addEventListener('submit', saveGradingWeights);
+        
+        // Calculate initial total
+        calculateTotalWeight();
+    } catch (error) {
+        console.error('Error loading grading weights:', error);
+        document.getElementById('gradingContent').innerHTML = '<div class="text-center text-danger p-4">Error loading grading weights.</div>';
+    }
+}
+
+// Calculate and display total weight
+function calculateTotalWeight() {
+    const attendance = parseFloat(document.getElementById('attendance_weight').value) || 0;
+    const instructor = parseFloat(document.getElementById('instructor_participation_weight').value) || 0;
+    const peer = parseFloat(document.getElementById('peer_participation_weight').value) || 0;
+    const poll = parseFloat(document.getElementById('poll_weight').value) || 0;
+    
+    const total = attendance + instructor + peer + poll;
+    const totalElement = document.getElementById('weightTotal');
+    const totalValueElement = document.getElementById('totalWeightValue');
+    
+    totalValueElement.textContent = total.toFixed(1) + '%';
+    
+    // Validate total (allow small floating point errors)
+    if (Math.abs(total - 100) < 0.01) {
+        totalElement.classList.remove('invalid');
+        totalElement.classList.add('valid');
+        totalValueElement.style.color = '#28a745';
+    } else {
+        totalElement.classList.remove('valid');
+        totalElement.classList.add('invalid');
+        totalValueElement.style.color = '#dc3545';
+    }
+}
+
+// Save grading weights
+async function saveGradingWeights(event) {
+    event.preventDefault();
+    
+    const attendance = parseFloat(document.getElementById('attendance_weight').value);
+    const instructor = parseFloat(document.getElementById('instructor_participation_weight').value);
+    const peer = parseFloat(document.getElementById('peer_participation_weight').value);
+    const poll = parseFloat(document.getElementById('poll_weight').value);
+    
+    const total = attendance + instructor + peer + poll;
+    
+    // Validate total
+    if (Math.abs(total - 100) > 0.01) {
+        const messageDiv = document.getElementById('gradingMessage');
+        messageDiv.innerHTML = '<div class="alert alert-danger">Weights must sum to exactly 100%. Current total: ' + total.toFixed(1) + '%</div>';
+        return;
+    }
+    
+    // Validate non-negative
+    if (attendance < 0 || instructor < 0 || peer < 0 || poll < 0) {
+        const messageDiv = document.getElementById('gradingMessage');
+        messageDiv.innerHTML = '<div class="alert alert-danger">All weights must be non-negative.</div>';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/grading_weights/${classId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                attendance_weight: attendance,
+                instructor_participation_weight: instructor,
+                peer_participation_weight: peer,
+                poll_weight: poll
+            })
+        });
+        
+        const data = await response.json();
+        
+        const messageDiv = document.getElementById('gradingMessage');
+        if (data.success) {
+            messageDiv.innerHTML = '<div class="alert alert-success">Grading weights saved successfully! The gradebook will be updated.</div>';
+            // Reload gradebook to show updated overall grades
+            loadGradebook();
+            // Clear message after 3 seconds
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 3000);
+        } else {
+            messageDiv.innerHTML = '<div class="alert alert-danger">Error: ' + (data.error || 'Failed to save grading weights') + '</div>';
+        }
+    } catch (error) {
+        console.error('Error saving grading weights:', error);
+        const messageDiv = document.getElementById('gradingMessage');
+        messageDiv.innerHTML = '<div class="alert alert-danger">Error saving grading weights. Please try again.</div>';
+    }
+}
+
+// Reset to default weights
+function resetGradingWeights() {
+    if (confirm('Reset all weights to 25% each?')) {
+        document.getElementById('attendance_weight').value = 25.0;
+        document.getElementById('instructor_participation_weight').value = 25.0;
+        document.getElementById('peer_participation_weight').value = 25.0;
+        document.getElementById('poll_weight').value = 25.0;
+        calculateTotalWeight();
+    }
+}
+
+// Export gradebook to Excel
+function exportGradebook() {
+    window.location.href = `/api/export_gradebook/${classId}`;
+}
+
 // Load data when tab is shown
 document.addEventListener('DOMContentLoaded', function() {
     // Load gradebook initially
     loadGradebook();
+    
+    // Load grading weights when that tab is clicked
+    const gradingTab = document.getElementById('grading-tab');
+    gradingTab.addEventListener('shown.bs.tab', function() {
+        loadGradingWeights();
+    });
     
     // Load metrics when that tab is clicked
     const metricsTab = document.getElementById('metrics-tab');

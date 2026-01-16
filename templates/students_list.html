@@ -6,53 +6,143 @@
 <style>
     body {
         zoom: 1.25;
-        height: 100vh;
-        overflow: hidden;
         margin: 0;
+        background: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
+        min-height: 100vh;
     }
     
     .students-container {
-        height: 100vh;
+        min-height: 100vh;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
+        background: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
     }
     
     .students-header {
-        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
         padding: 1.5rem 0;
+        margin-bottom: 0;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        width: 100%;
+    }
+    
+    .students-header-container {
+        width: 100%;
+        padding: 0;
+    }
+    
+    .import-section {
+        background-color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        flex-shrink: 0; /* Prevent import section from shrinking */
+    }
+    
+    .upload-dropzone {
+        border: 2px dashed #2A1A40;
+        border-radius: 10px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background-color: #f8f9fa;
+    }
+    
+    .upload-dropzone:hover {
+        background-color: rgba(42, 26, 64, 0.05);
+        border-color: #3B2556;
+    }
+    
+    .upload-dropzone.dragover {
+        background-color: rgba(42, 26, 64, 0.1);
+        border-color: #550DB1;
+    }
+    
+    .upload-icon {
+        font-size: 3rem;
+        color: #2A1A40;
+        margin-bottom: 1rem;
+    }
+    
+    .file-input {
+        display: none;
+    }
+    
+    .upload-status {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        border-radius: 5px;
+        display: none;
+    }
+    
+    .upload-status.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        display: block;
+    }
+    
+    .upload-status.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        display: block;
+    }
+    
+    .upload-status.info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+        display: block;
+    }
+    
+    .import-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-download {
+        background: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+    
+    .btn-download:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        color: white;
     }
     
     .students-content {
         flex: 1;
-        overflow-y: auto;
         overflow-x: hidden;
-        min-height: 0;
         padding: 1rem;
         background-color: white;
         margin: 0 1rem 1rem 1rem;
         border-radius: 15px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
     }
     
-    .students-content::-webkit-scrollbar {
-        width: 12px;
-    }
-    
-    .students-content::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    
-    .students-content::-webkit-scrollbar-thumb {
-        background: #2A1A40;
-        border-radius: 6px;
-    }
-    
-    .students-content::-webkit-scrollbar-thumb:hover {
-        background: #3B2556;
-    }
     
     .table-container {
+        width: 100%;
+        flex-shrink: 0; /* Prevent tables from shrinking */
+    }
+    
+    .table {
+        table-layout: fixed;
         width: 100%;
     }
     
@@ -64,9 +154,71 @@
         padding: 1rem;
     }
     
+    /* Column widths: Name fields, Student Number, Email, and Actions */
+    .table thead th:nth-child(1),
+    .table tbody td:nth-child(1) {
+        width: 20%; /* First Name */
+    }
+    
+    .table thead th:nth-child(2),
+    .table tbody td:nth-child(2) {
+        width: 20%; /* Last Name */
+    }
+    
+    .table thead th:nth-child(3),
+    .table tbody td:nth-child(3) {
+        width: 15%; /* Preferred Name */
+    }
+    
+    .table thead th:nth-child(4),
+    .table tbody td:nth-child(4) {
+        width: 15%; /* Email - slightly larger than student number */
+    }
+    
+    .table thead th:nth-child(5),
+    .table tbody td:nth-child(5) {
+        width: 12%; /* Student Number */
+    }
+    
+    .table thead th:nth-child(6),
+    .table tbody td:nth-child(6) {
+        width: 13%; /* Actions - smaller for compact buttons */
+    }
+    
+    .btn-group {
+        display: flex;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .btn-group .btn {
+        white-space: nowrap;
+    }
+    
+    /* Square buttons for edit and remove */
+    .btn-group .btn.btn-outline-primary,
+    .btn-group .btn.btn-outline-danger {
+        width: 2rem;
+        height: 2rem;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+    }
+    
+    .btn-group .btn.btn-outline-primary i,
+    .btn-group .btn.btn-outline-danger i {
+        font-size: 0.875rem;
+    }
+    
     .table tbody td {
         padding: 1rem;
         vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     
     .table-striped tbody tr:nth-of-type(odd) {
@@ -76,12 +228,119 @@
     .table-striped tbody tr:hover {
         background-color: rgba(59, 37, 86, 0.1);
     }
+    
+    /* Inactive students section */
+    .inactive-section {
+        opacity: 0.6;
+        flex-shrink: 0; /* Prevent inactive section from shrinking */
+    }
+    
+    .section-title {
+        flex-shrink: 0; /* Prevent section titles from shrinking */
+    }
+    
+    .inactive-section .table thead th {
+        background-color: #6c757d;
+    }
+    
+    .inactive-section .table tbody tr {
+        background-color: rgba(108, 117, 125, 0.1);
+    }
+    
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+    }
+    
+    .sortable:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .sortable::after {
+        content: ' ↕';
+        opacity: 0.5;
+        font-size: 0.8em;
+        margin-left: 0.5rem;
+    }
+    
+    .sortable.asc::after {
+        content: ' ↑';
+        opacity: 1;
+    }
+    
+    .sortable.desc::after {
+        content: ' ↓';
+        opacity: 1;
+    }
+    
+    .btn-status {
+        border: none;
+        padding: 0.4rem 0.75rem;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
+    .btn-status.active {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .btn-status.active:hover {
+        background-color: #218838;
+        transform: scale(1.05);
+    }
+    
+    .btn-status.inactive {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .btn-status.inactive:hover {
+        background-color: #c82333;
+        transform: scale(1.05);
+    }
+    
+    .section-title {
+        color: #2A1A40;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .inactive-section .section-title {
+        color: #6c757d;
+    }
+    
+    .student-count-badge {
+        color: #6c757d;
+        font-weight: 500;
+        font-size: 1rem;
+    }
+    
+    .student-count {
+        background-color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        color: #2A1A40;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="students-container">
-    <div class="container students-header">
+    <div class="students-header">
+        <div class="container">
         <div class="d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-3">
                 <a href="/classroom/{{ class_obj.id }}" class="btn btn-outline-light">
@@ -90,37 +349,766 @@
                 <h1 class="text-white mb-0">Students - {{ class_obj.name }}</h1>
             </div>
         </div>
+        </div>
     </div>
     
     <div class="students-content">
+        <!-- Excel Import Section -->
+        <div class="import-section">
+            <h5 class="mb-3" style="color: #2A1A40;">Import Students from Excel</h5>
+            <div class="import-buttons">
+                <button class="btn btn-download" onclick="downloadTemplate()">
+                    <i class="bi bi-download"></i> Download Excel Template
+                </button>
+                <button class="btn btn-download" onclick="exportCurrentList()">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> Export Current Class List
+                </button>
+            </div>
+            <div class="upload-dropzone" id="uploadDropzone" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">
+                    <i class="bi bi-cloud-upload"></i>
+                </div>
+                <p class="mb-2" style="color: #2A1A40; font-weight: 600;">Click here or drag and drop your Excel file</p>
+                <p class="text-muted small mb-0">File must match the template format exactly</p>
+                <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls" onchange="handleFileSelect(event)">
+            </div>
+            <div id="uploadStatus" class="upload-status"></div>
+        </div>
+        
+        <!-- Active Students Section -->
+        <div class="section-title">
+            Active Students 
+            <span class="student-count-badge">({{ active_students|length }})</span>
+        </div>
         <div class="table-container">
-            <table class="table table-striped">
+            <table class="table table-striped" id="activeStudentsTable">
                 <thead>
                     <tr>
-                        <th>Student Number</th>
-                        <th>First Name</th>
-                        <th>Preferred Name</th>
-                        <th>Last Name</th>
+                        <th class="sortable" data-sort="first_name" data-type="text">First Name</th>
+                        <th class="sortable" data-sort="last_name" data-type="text">Last Name</th>
+                        <th class="sortable" data-sort="preferred_name" data-type="text">Preferred Name</th>
+                        <th class="sortable" data-sort="email" data-type="text">Email</th>
+                        <th class="sortable" data-sort="student_number" data-type="number">Student Number</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% for student in students %}
-                    <tr>
-                        <td>{{ student.student_number }}</td>
-                        <td>{{ student.first_name }}</td>
-                        <td>{{ student.preferred_name or '-' }}</td>
-                        <td>{{ student.last_name }}</td>
+                <tbody id="activeStudentsTableBody">
+                    {% for student in active_students %}
+                    <tr data-student-id="{{ student.id }}" data-first-name="{{ student.first_name }}" data-preferred-name="{{ student.preferred_name or '' }}" data-last-name="{{ student.last_name }}" data-student-number="{{ student.student_number }}" data-email="{{ student.email|default('') }}" data-status="active">
+                        <td title="{{ student.first_name }}">{{ student.first_name }}</td>
+                        <td title="{{ student.last_name }}">{{ student.last_name }}</td>
+                        <td title="{{ student.preferred_name or '-' }}">{{ student.preferred_name or '-' }}</td>
+                        <td title="{{ student.email|default('-') }}">{{ student.email|default('-') }}</td>
+                        <td title="{{ student.student_number }}">{{ student.student_number }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editStudent({{ student.id }})" title="Edit Student">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn-status active" onclick="toggleStudentStatus({{ student.id }}, true, '{{ student.first_name }} {{ student.last_name }}')" title="Click to deactivate">
+                                    <i class="bi bi-check-circle"></i> Active
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
-                    {% if students|length == 0 %}
+                    {% if active_students|length == 0 %}
                     <tr>
-                        <td colspan="4" class="text-center text-muted">No students enrolled in this class.</td>
+                        <td colspan="6" class="text-center text-muted">No active students enrolled in this class.</td>
                     </tr>
                     {% endif %}
                 </tbody>
             </table>
         </div>
+        
+        <!-- Inactive Students Section -->
+        <div class="inactive-section">
+            <div class="section-title">
+                Inactive Students 
+                <span class="student-count-badge">({{ inactive_students|length }})</span>
+            </div>
+            <div class="table-container">
+                <table class="table table-striped" id="inactiveStudentsTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="first_name" data-type="text">First Name</th>
+                            <th class="sortable" data-sort="last_name" data-type="text">Last Name</th>
+                            <th class="sortable" data-sort="preferred_name" data-type="text">Preferred Name</th>
+                            <th class="sortable" data-sort="email" data-type="text">Email</th>
+                            <th class="sortable" data-sort="student_number" data-type="number">Student Number</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inactiveStudentsTableBody">
+                        {% for student in inactive_students %}
+                        <tr data-student-id="{{ student.id }}" data-first-name="{{ student.first_name }}" data-preferred-name="{{ student.preferred_name or '' }}" data-last-name="{{ student.last_name }}" data-student-number="{{ student.student_number }}" data-email="{{ student.email|default('') }}" data-status="inactive">
+                            <td title="{{ student.first_name }}">{{ student.first_name }}</td>
+                            <td title="{{ student.last_name }}">{{ student.last_name }}</td>
+                            <td title="{{ student.preferred_name or '-' }}">{{ student.preferred_name or '-' }}</td>
+                            <td title="{{ student.email|default('-') }}">{{ student.email|default('-') }}</td>
+                            <td title="{{ student.student_number }}">{{ student.student_number }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editStudent({{ student.id }})" title="Edit Student">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn-status inactive" onclick="toggleStudentStatus({{ student.id }}, false, '{{ student.first_name }} {{ student.last_name }}')" title="Click to reactivate">
+                                        <i class="bi bi-x-circle"></i> Inactive
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="removeStudent({{ student.id }}, '{{ student.first_name }} {{ student.last_name }}')" title="Remove Student">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if inactive_students|length == 0 %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No inactive students.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
+<!-- Edit Student Modal -->
+<div class="modal fade" id="editStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editStudentForm">
+                    <input type="hidden" id="editStudentId" name="student_id">
+                    <div class="mb-3">
+                        <label for="editFirstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editFirstName" name="first_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editLastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editLastName" name="last_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPreferredName" class="form-label">Preferred Name</label>
+                        <input type="text" class="form-control" id="editPreferredName" name="preferred_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editStudentNumber" class="form-label">Student Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editStudentNumber" name="student_number" pattern="[0-9]{9}" maxlength="9" required>
+                        <small class="form-text text-muted">Must be exactly 9 digits</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="editEmail" name="email" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveStudentEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const classId = {{ class_obj.id }};
+
+// Download template
+function downloadTemplate() {
+    window.location.href = `/api/download_student_template/${classId}`;
+}
+
+// Export current class list
+function exportCurrentList() {
+    window.location.href = `/api/export_students/${classId}`;
+}
+
+// File input change handler
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        uploadFile(file);
+    }
+}
+
+// Drag and drop handlers
+const dropzone = document.getElementById('uploadDropzone');
+const fileInput = document.getElementById('fileInput');
+const uploadStatus = document.getElementById('uploadStatus');
+
+// Prevent default drag behaviors
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, preventDefaults, false);
+    document.body.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+// Highlight drop zone when item is dragged over it
+['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+    dropzone.classList.add('dragover');
+}
+
+function unhighlight(e) {
+    dropzone.classList.remove('dragover');
+}
+
+// Handle dropped files
+dropzone.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    
+    if (files.length > 0) {
+        const file = files[0];
+        // Check if it's an Excel file
+        if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+            uploadFile(file);
+        } else {
+            showStatus('error', 'Please upload an Excel file (.xlsx or .xls)');
+        }
+    }
+}
+
+// Upload file function
+async function uploadFile(file) {
+    // Show loading status
+    showStatus('info', 'Uploading and processing file...');
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch(`/api/upload_students/${classId}`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            let message = `Success! `;
+            if (result.added > 0) message += `${result.added} student(s) added. `;
+            if (result.updated > 0) message += `${result.updated} student(s) updated. `;
+            if (result.skipped > 0) message += `${result.skipped} row(s) skipped.`;
+            
+            if (result.errors && result.errors.length > 0) {
+                message += '<br><br><strong>Errors:</strong><ul style="text-align: left; margin-top: 0.5rem;">';
+                result.errors.slice(0, 10).forEach(error => {
+                    message += `<li>${error}</li>`;
+                });
+                if (result.errors.length > 10) {
+                    message += `<li>... and ${result.errors.length - 10} more errors</li>`;
+                }
+                message += '</ul>';
+            }
+            
+            showStatus('success', message);
+            
+            // Reload the page after a short delay to show updated student list
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        } else {
+            showStatus('error', result.error || 'Failed to upload file');
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        showStatus('error', 'An error occurred while uploading the file. Please try again.');
+    }
+    
+    // Reset file input
+    fileInput.value = '';
+}
+
+// Show status message
+function showStatus(type, message) {
+    uploadStatus.className = `upload-status ${type}`;
+    uploadStatus.innerHTML = message;
+    uploadStatus.style.display = 'block';
+    
+    // Scroll to status if needed
+    uploadStatus.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Hide status after some time (optional)
+function hideStatus() {
+    setTimeout(() => {
+        uploadStatus.style.display = 'none';
+    }, 10000);
+}
+
+// Sorting functionality - store state per table
+const tableSortState = {};
+
+// Initialize sorting for all tables
+function initSorting() {
+    // Use event delegation on document to handle dynamically added tables
+    document.removeEventListener('click', handleSortClick);
+    document.addEventListener('click', handleSortClick);
+}
+
+function handleSortClick(event) {
+    const header = event.target.closest('.sortable');
+    if (!header) return;
+    
+    const column = header.dataset.sort;
+    const type = header.dataset.type;
+    
+    if (!column || !type) return;
+    
+    // Get the table this header belongs to
+    const table = header.closest('table');
+    if (!table) return;
+    
+    const tableBodyId = table.querySelector('tbody')?.id;
+    if (!tableBodyId) return;
+    
+    // Initialize sort state for this table if needed
+    if (!tableSortState[tableBodyId]) {
+        tableSortState[tableBodyId] = { column: null, direction: null };
+    }
+    
+    const state = tableSortState[tableBodyId];
+    
+    // Remove sort classes from all headers in this table
+    table.querySelectorAll('.sortable').forEach(h => {
+        h.classList.remove('asc', 'desc');
+    });
+    
+    // Toggle sort direction if clicking the same column, otherwise start ascending
+    if (state.column === column) {
+        // Toggle direction: asc -> desc, desc -> asc
+        state.direction = state.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        // New column, start with ascending
+        state.column = column;
+        state.direction = 'asc';
+    }
+    
+    // Apply visual indicator
+    header.classList.add(state.direction);
+    
+    // Sort the table
+    sortTable(tableBodyId, column, state.direction, type);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initSorting();
+    
+    // Default sort by last name on page load
+    const activeTableBody = document.getElementById('activeStudentsTableBody');
+    const inactiveTableBody = document.getElementById('inactiveStudentsTableBody');
+    
+    if (activeTableBody && activeTableBody.querySelectorAll('tr[data-student-id]').length > 0) {
+        // Find last name header in active table
+        const activeTable = document.getElementById('activeStudentsTable');
+        const lastNameHeader = activeTable.querySelector('th[data-sort="last_name"]');
+        if (lastNameHeader) {
+            // Initialize state and sort
+            tableSortState['activeStudentsTableBody'] = { column: 'last_name', direction: 'asc' };
+            lastNameHeader.classList.add('asc');
+            sortTable('activeStudentsTableBody', 'last_name', 'asc', 'text');
+        }
+    }
+    
+    if (inactiveTableBody && inactiveTableBody.querySelectorAll('tr[data-student-id]').length > 0) {
+        // Find last name header in inactive table
+        const inactiveTable = document.getElementById('inactiveStudentsTable');
+        const lastNameHeader = inactiveTable.querySelector('th[data-sort="last_name"]');
+        if (lastNameHeader) {
+            // Initialize state and sort
+            tableSortState['inactiveStudentsTableBody'] = { column: 'last_name', direction: 'asc' };
+            lastNameHeader.classList.add('asc');
+            sortTable('inactiveStudentsTableBody', 'last_name', 'asc', 'text');
+        }
+    }
+});
+
+function sortTable(tableBodyId, column, direction, type) {
+    const tbody = document.getElementById(tableBodyId);
+    if (!tbody) return;
+    
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Filter out the "no students" row
+    const dataRows = rows.filter(row => row.dataset.studentId);
+    
+    if (dataRows.length === 0) return;
+    
+    // Sort rows
+    dataRows.sort((a, b) => {
+        // Convert column name to dataset property name (underscore to camelCase)
+        // e.g., 'student_number' -> 'studentNumber', 'first_name' -> 'firstName'
+        const dataAttr = column.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+        let aValue = a.dataset[dataAttr] || '';
+        let bValue = b.dataset[dataAttr] || '';
+        
+        // Handle numeric sorting for student_number
+        if (type === 'number') {
+            aValue = parseInt(aValue) || 0;
+            bValue = parseInt(bValue) || 0;
+            return direction === 'asc' ? aValue - bValue : bValue - aValue;
+        }
+        
+        // Handle text sorting (case-insensitive)
+        aValue = aValue.toString().toLowerCase();
+        bValue = bValue.toString().toLowerCase();
+        
+        if (aValue < bValue) {
+            return direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+            return direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+    });
+    
+    // Remove all rows from tbody
+    rows.forEach(row => tbody.removeChild(row));
+    
+    // Re-append sorted rows (and any non-data rows)
+    const noStudentsRow = rows.find(row => !row.dataset.studentId);
+    
+    // Always append in sorted order - the sort function already handles direction
+    dataRows.forEach(row => tbody.appendChild(row));
+    
+    // Re-append "no students" row if it exists and there are no data rows
+    if (noStudentsRow && dataRows.length === 0) {
+        tbody.appendChild(noStudentsRow);
+    }
+}
+
+// Toggle student status (Active/Inactive)
+// Edit student function
+function editStudent(studentId) {
+    // Find the student row
+    const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+    if (!row) return;
+    
+    // Get student data from row
+    const firstName = row.dataset.firstName || '';
+    const lastName = row.dataset.lastName || '';
+    const preferredName = row.dataset.preferredName || '';
+    const studentNumber = row.dataset.studentNumber || '';
+    const email = row.dataset.email || '';
+    
+    // Populate the edit form
+    document.getElementById('editStudentId').value = studentId;
+    document.getElementById('editFirstName').value = firstName;
+    document.getElementById('editLastName').value = lastName;
+    document.getElementById('editPreferredName').value = preferredName;
+    document.getElementById('editStudentNumber').value = studentNumber;
+    document.getElementById('editEmail').value = email;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('editStudentModal'));
+    modal.show();
+}
+
+// Save student edit
+async function saveStudentEdit() {
+    const studentId = document.getElementById('editStudentId').value;
+    const formData = {
+        first_name: document.getElementById('editFirstName').value.trim(),
+        last_name: document.getElementById('editLastName').value.trim(),
+        preferred_name: document.getElementById('editPreferredName').value.trim() || null,
+        student_number: document.getElementById('editStudentNumber').value.trim(),
+        email: document.getElementById('editEmail').value.trim()
+    };
+    
+    // Validate student number
+    if (formData.student_number.length !== 9 || !/^\d+$/.test(formData.student_number)) {
+        alert('Student Number must be exactly 9 digits');
+        return;
+    }
+    
+    // Validate email
+    if (!formData.email || !formData.email.includes('@')) {
+        alert('Please enter a valid email address');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/update_student/${studentId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editStudentModal'));
+            modal.hide();
+            
+            // Reload page to show updated data
+            location.reload();
+        } else {
+            alert('Error updating student: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error updating student:', error);
+        alert('Error updating student. Please try again.');
+    }
+}
+
+// Remove student function
+async function removeStudent(studentId, studentName) {
+    if (!confirm(`Are you sure you want to permanently remove "${studentName}" from this class?\n\nThis will:\n- Remove the student's enrollment from this class\n- Delete all attendance, participation, and poll response records for this student in this class\n\nThis action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/remove_student_from_class/${classId}/${studentId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            // Reload page to show updated data
+            location.reload();
+        } else {
+            alert('Error removing student: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error removing student:', error);
+        alert('Error removing student. Please try again.');
+    }
+}
+
+async function toggleStudentStatus(studentId, isCurrentlyActive, studentName) {
+    const action = isCurrentlyActive ? 'deactivate' : 'reactivate';
+    if (!confirm(`Are you sure you want to ${action} "${studentName}"?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/toggle_student_status/${classId}/${studentId}`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Find the row
+            const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+            if (row) {
+                const newStatus = result.is_active;
+
+                // Get student data from the row before removing it
+                const studentData = {
+                    id: studentId,
+                    first_name: row.dataset.firstName,
+                    preferred_name: row.dataset.preferredName,
+                    last_name: row.dataset.lastName,
+                    student_number: row.dataset.studentNumber
+                };
+
+                // Inactive section should always exist in the template now, but check just in case
+                let inactiveSection = document.querySelector('.inactive-section');
+                if (!inactiveSection && !newStatus) {
+                    // Create inactive section if it doesn't exist (shouldn't happen with new template)
+                    const activeTableContainer = document.getElementById('activeStudentsTable').closest('.table-container');
+                    const inactiveHtml = `
+                        <div class="inactive-section">
+                            <div class="section-title">Inactive Students <span class="student-count-badge" id="inactiveCountBadge">(0)</span></div>
+                            <div class="table-container">
+                                <table class="table table-striped" id="inactiveStudentsTable">
+                                    <thead>
+                                        <tr>
+                                            <th class="sortable" data-sort="first_name" data-type="text">First Name</th>
+                                            <th class="sortable" data-sort="last_name" data-type="text">Last Name</th>
+                                            <th class="sortable" data-sort="preferred_name" data-type="text">Preferred Name</th>
+                                            <th class="sortable" data-sort="student_number" data-type="number">Student Number</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inactiveStudentsTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    activeTableContainer.insertAdjacentHTML('afterend', inactiveHtml);
+                    // Re-initialize sorting for new table after it's added to DOM
+                    setTimeout(() => {
+                        initSorting();
+                    }, 0);
+                }
+
+                // Remove from current table
+                row.remove();
+
+                // Get the target table body (now it should exist)
+                const targetTableBody = newStatus ?
+                    document.getElementById('activeStudentsTableBody') :
+                    document.getElementById('inactiveStudentsTableBody');
+
+                // Create and append the new row
+                if (targetTableBody) {
+                    const newRow = createStudentRow(studentData, newStatus);
+                    targetTableBody.appendChild(newRow);
+                    
+                    // Update student count
+                    updateStudentCount();
+                    
+                    // Show success message
+                    showStatus('success', `Student "${studentName}" has been ${newStatus ? 'reactivated' : 'deactivated'}.`);
+                } else {
+                    // Fallback: reload page if table body not found
+                    console.error('Target table body not found, reloading page...');
+                    window.location.reload();
+                }
+            }
+        } else {
+            showStatus('error', result.error || 'Failed to update student status');
+        }
+    } catch (error) {
+        console.error('Toggle status error:', error);
+        showStatus('error', 'An error occurred while updating student status. Please try again.');
+    }
+}
+
+// Create a student row element
+function createStudentRow(studentData, isActive) {
+    const row = document.createElement('tr');
+    row.setAttribute('data-student-id', studentData.id);
+    row.setAttribute('data-first-name', studentData.first_name);
+    row.setAttribute('data-preferred-name', studentData.preferred_name || '');
+    row.setAttribute('data-last-name', studentData.last_name);
+    row.setAttribute('data-student-number', studentData.student_number);
+    row.setAttribute('data-email', studentData.email || '');
+    row.setAttribute('data-status', isActive ? 'active' : 'inactive');
+    
+    const statusText = isActive ? 'Active' : 'Inactive';
+    const statusClass = isActive ? 'active' : 'inactive';
+    const statusIcon = isActive ? 'bi-check-circle' : 'bi-x-circle';
+    const actionText = isActive ? 'Click to deactivate' : 'Click to reactivate';
+    const onClickStatus = isActive ? 'true' : 'false';
+    const studentName = `${studentData.first_name} ${studentData.last_name}`;
+    const email = studentData.email || '-';
+    
+    let actionsHtml = `
+        <div class="btn-group" role="group">
+            <button class="btn btn-sm btn-outline-primary" onclick="editStudent(${studentData.id})" title="Edit Student">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn-status ${statusClass}" onclick="toggleStudentStatus(${studentData.id}, ${onClickStatus}, '${studentName.replace(/'/g, "\\'")}')" title="${actionText}">
+                <i class="bi ${statusIcon}"></i> ${statusText}
+            </button>
+    `;
+    
+    // Add remove button only for inactive students
+    if (!isActive) {
+        actionsHtml += `
+            <button class="btn btn-sm btn-outline-danger" onclick="removeStudent(${studentData.id}, '${studentName.replace(/'/g, "\\'")}')" title="Remove Student">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+    }
+    
+    actionsHtml += `</div>`;
+    
+    row.innerHTML = `
+        <td title="${studentData.first_name}">${studentData.first_name}</td>
+        <td title="${studentData.last_name}">${studentData.last_name}</td>
+        <td title="${studentData.preferred_name || '-'}">${studentData.preferred_name || '-'}</td>
+        <td title="${email}">${email}</td>
+        <td title="${studentData.student_number}">${studentData.student_number}</td>
+        <td>${actionsHtml}</td>
+    `;
+    
+    return row;
+}
+
+// Update student count
+function updateStudentCount() {
+    const activeTbody = document.getElementById('activeStudentsTableBody');
+    const inactiveTbody = document.getElementById('inactiveStudentsTableBody');
+    
+    const activeRows = activeTbody ? activeTbody.querySelectorAll('tr[data-student-id]') : [];
+    const inactiveRows = inactiveTbody ? inactiveTbody.querySelectorAll('tr[data-student-id]') : [];
+    
+    const activeCount = activeRows.length;
+    const inactiveCount = inactiveRows.length;
+    
+    // Update active count badge
+    const activeSection = document.querySelector('.section-title');
+    if (activeSection && activeSection.textContent.includes('Active Students')) {
+        const activeBadge = activeSection.querySelector('.student-count-badge');
+        if (activeBadge) {
+            activeBadge.textContent = `(${activeCount})`;
+        }
+    }
+    
+    // Update inactive count badge (always ensure section exists and update count)
+    const inactiveSection = document.querySelector('.inactive-section');
+    if (inactiveSection) {
+        const inactiveTitle = inactiveSection.querySelector('.section-title');
+        if (inactiveTitle) {
+            let inactiveBadge = inactiveTitle.querySelector('.student-count-badge');
+            if (!inactiveBadge) {
+                inactiveBadge = document.createElement('span');
+                inactiveBadge.className = 'student-count-badge';
+                inactiveTitle.appendChild(inactiveBadge);
+            }
+            inactiveBadge.textContent = `(${inactiveCount})`;
+        }
+        
+        // Update "no inactive students" message in table
+        const inactiveTbody = document.getElementById('inactiveStudentsTableBody');
+        if (inactiveTbody) {
+            const noStudentsRow = inactiveTbody.querySelector('td[colspan]');
+            if (inactiveCount === 0) {
+                if (!noStudentsRow) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = '<td colspan="5" class="text-center text-muted">No inactive students.</td>';
+                    inactiveTbody.appendChild(row);
+                }
+            } else {
+                if (noStudentsRow) {
+                    noStudentsRow.closest('tr').remove();
+                }
+            }
+        }
+    }
+    
+    // Update active table "no students" message
+    if (activeTbody) {
+        if (activeCount === 0) {
+            if (!activeTbody.querySelector('td[colspan]')) {
+                const noStudentsRow = document.createElement('tr');
+                noStudentsRow.innerHTML = '<td colspan="5" class="text-center text-muted">No active students enrolled in this class.</td>';
+                activeTbody.appendChild(noStudentsRow);
+            }
+        } else {
+            const noStudentsRow = activeTbody.querySelector('td[colspan]');
+            if (noStudentsRow) {
+                noStudentsRow.closest('tr').remove();
+            }
+        }
+    }
+}
+</script>
 {% endblock %}
 

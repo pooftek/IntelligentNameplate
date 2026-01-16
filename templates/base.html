@@ -27,6 +27,42 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
+        
+        /* Global tooltip for truncated text */
+        .truncated-text {
+            position: relative;
+            cursor: help;
+        }
+        
+        .truncated-text[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.5rem 0.75rem;
+            background-color: #2A1A40;
+            color: white;
+            border-radius: 5px;
+            white-space: nowrap;
+            z-index: 1000;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            pointer-events: none;
+            margin-bottom: 5px;
+        }
+        
+        .truncated-text[title]:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 95%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #2A1A40;
+            z-index: 1001;
+            pointer-events: none;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -34,6 +70,38 @@
     {% block content %}{% endblock %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script>
+        // Site-wide tooltip functionality for truncated text
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-detect truncated text and add tooltips
+            function addTooltips() {
+                const elements = document.querySelectorAll('td, th, .card-title, h1, h2, h3, h4, h5, h6, p, span, a, button');
+                
+                elements.forEach(element => {
+                    // Check if text is truncated
+                    if (element.scrollWidth > element.clientWidth && element.textContent.trim()) {
+                        // Only add tooltip if not already added
+                        if (!element.classList.contains('truncated-text')) {
+                            element.classList.add('truncated-text');
+                            element.setAttribute('title', element.textContent.trim());
+                        }
+                    }
+                });
+            }
+            
+            // Run on page load
+            addTooltips();
+            
+            // Re-run after dynamic content changes
+            const observer = new MutationObserver(addTooltips);
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['style', 'class']
+            });
+        });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

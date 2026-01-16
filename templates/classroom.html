@@ -375,7 +375,17 @@ async function handleStartClass() {
 }
 
 async function startClass() {
-    const response = await fetch(`/api/start_class/{{ class_obj.id }}`, {method: 'POST'});
+    // Get exclude_from_grading preference if modal exists, otherwise default to false
+    const excludeFromGrading = document.getElementById('excludeFromGrading') ? 
+        document.getElementById('excludeFromGrading').checked : false;
+    
+    const response = await fetch(`/api/start_class/{{ class_obj.id }}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            exclude_from_grading: excludeFromGrading
+        })
+    });
     const data = await response.json();
     if (data.success) {
         window.location.href = data.redirect;

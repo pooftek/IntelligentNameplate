@@ -21,6 +21,41 @@
     .class-data-header {
         flex-shrink: 0;
         padding: 1.5rem 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
+        margin-bottom: 0;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        width: 100%;
+    }
+    
+    .class-data-header .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        max-width: 100%;
+    }
+    
+    .responsive-title {
+        font-size: clamp(2rem, 6vw, 4rem);
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        min-width: 0;
+        line-height: 1.3;
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+    
+    .class-data-header-title-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        min-width: 0;
+        flex: 1;
+        margin-left: 1.5rem;
     }
     
     .class-data-content {
@@ -52,6 +87,34 @@
         background: #3B2556;
     }
     
+    #gradebookContent,
+    #metricsContent {
+        max-height: calc(100vh - 300px);
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    #gradebookContent::-webkit-scrollbar,
+    #metricsContent::-webkit-scrollbar {
+        width: 12px;
+    }
+    
+    #gradebookContent::-webkit-scrollbar-track,
+    #metricsContent::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    #gradebookContent::-webkit-scrollbar-thumb,
+    #metricsContent::-webkit-scrollbar-thumb {
+        background: #2A1A40;
+        border-radius: 6px;
+    }
+    
+    #gradebookContent::-webkit-scrollbar-thumb:hover,
+    #metricsContent::-webkit-scrollbar-thumb:hover {
+        background: #3B2556;
+    }
+    
     .nav-tabs {
         border-bottom: 2px solid #2A1A40;
         margin-bottom: 1.5rem;
@@ -61,8 +124,9 @@
         color: #2A1A40;
         border: none;
         border-bottom: 3px solid transparent;
-        padding: 0.75rem 1.5rem;
+        padding: 1rem 2.5rem;
         font-weight: 600;
+        font-size: 1.25rem;
     }
     
     .nav-tabs .nav-link:hover {
@@ -174,20 +238,42 @@
         margin: 0 auto;
     }
     
+    .grading-form h4 {
+        margin-bottom: 0.75rem !important;
+        text-align: center;
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    
+    .grading-form p {
+        margin-bottom: 1rem !important;
+        text-align: center;
+    }
+    
+    #gradingContent .mt-4 {
+        margin-top: 1rem !important;
+        text-align: center;
+    }
+    
+    #gradingContent .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
     .grading-form .form-group {
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.75rem;
     }
     
     .grading-form label {
         font-weight: 600;
         color: #2A1A40;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.25rem;
     }
     
     .grading-form .form-control {
         border: 2px solid #dee2e6;
         border-radius: 5px;
-        padding: 0.75rem;
+        padding: 0.5rem;
     }
     
     .grading-form .form-control:focus {
@@ -199,8 +285,8 @@
         background-color: #f8f9fa;
         border: 2px solid #2A1A40;
         border-radius: 8px;
-        padding: 1rem;
-        margin-top: 1rem;
+        padding: 0.75rem;
+        margin-top: 0.75rem;
         text-align: center;
     }
     
@@ -229,21 +315,54 @@
     .help-text {
         font-size: 0.875rem;
         color: #6c757d;
-        margin-top: 0.5rem;
+        margin-top: 0.25rem;
+    }
+    
+    #gradingContent .mt-3 {
+        margin-top: 0.75rem !important;
+    }
+    
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+    }
+    
+    .sortable:hover {
+        background-color: rgba(91, 66, 120, 1);
+    }
+    
+    .sortable::after {
+        content: ' ↕';
+        opacity: 0.5;
+        font-size: 0.8em;
+        margin-left: 0.5rem;
+    }
+    
+    .sortable.asc::after {
+        content: ' ↑';
+        opacity: 1;
+    }
+    
+    .sortable.desc::after {
+        content: ' ↓';
+        opacity: 1;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="class-data-container">
-    <div class="container class-data-header">
+    <div class="class-data-header">
+        <div class="container">
         <div class="d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-3">
-                <a href="/classroom/{{ class_obj.id }}" class="btn btn-outline-light">
-                    <i class="bi bi-arrow-left"></i> Back
-                </a>
-                <h1 class="text-white mb-0">Class Data - {{ class_obj.name }}</h1>
+            <div class="class-data-header-title-container">
+                <h1 class="text-white responsive-title"><span style="font-weight: bold;">Class Data:</span> <span style="font-weight: normal;">{{ class_obj.name }}</span></h1>
             </div>
+            <a href="/classroom/{{ class_obj.id }}" class="btn btn-outline-light" style="flex-shrink: 0; margin-right: 1.5rem;">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
         </div>
     </div>
     
@@ -312,21 +431,21 @@ async function loadGradebook() {
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>Student Name</th>
-                        <th>Student Number</th>
-                        <th>Attendance Grade</th>
-                        <th>Instructor Participation</th>
-                        <th>Peer Participation</th>
-                        <th>Poll Grade</th>
-                        <th>Overall Grade</th>
+                        <th class="sortable" data-sort="name" data-type="text">Student Name</th>
+                        <th class="sortable" data-sort="student_number" data-type="number">Student Number</th>
+                        <th class="sortable" data-sort="attendance_grade" data-type="number">Attendance Grade</th>
+                        <th class="sortable" data-sort="instructor_participation" data-type="number">Instructor Participation</th>
+                        <th class="sortable" data-sort="peer_participation" data-type="number">Peer Participation</th>
+                        <th class="sortable" data-sort="poll_grade" data-type="number">Poll Grade</th>
+                        <th class="sortable" data-sort="overall_grade" data-type="number">Overall Grade</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="gradebookTableBody">
         `;
         
         data.forEach(student => {
             html += `
-                <tr>
+                <tr data-name="${student.name}" data-student-number="${student.student_number}" data-attendance-grade="${student.attendance_grade}" data-instructor-participation="${student.instructor_participation}" data-peer-participation="${student.peer_participation}" data-poll-grade="${student.poll_grade}" data-overall-grade="${student.overall_grade}">
                     <td>${student.name}</td>
                     <td>${student.student_number}</td>
                     <td>${student.attendance_grade.toFixed(2)}%</td>
@@ -344,6 +463,9 @@ async function loadGradebook() {
         `;
         
         content.innerHTML = html;
+        
+        // Re-initialize sorting after table is created
+        initSorting();
     } catch (error) {
         console.error('Error loading gradebook:', error);
         document.getElementById('gradebookContent').innerHTML = '<div class="text-center text-danger p-4">Error loading gradebook data.</div>';
@@ -480,8 +602,8 @@ async function loadGradingWeights() {
         
         let html = `
             <div class="grading-form">
-                <h4 class="mb-4">Grading Weights Configuration</h4>
-                <p class="text-muted mb-4">Set the percentage weights for each component of the overall grade. The total must equal 100%.</p>
+                <h4>Grading Weights Configuration</h4>
+                <p class="text-muted">Set the percentage weights for each component of the overall grade. The total must equal 100%.</p>
                 
                 <form id="gradingWeightsForm">
                     <div class="form-group">
@@ -518,11 +640,8 @@ async function loadGradingWeights() {
                     </div>
                     
                     <div class="mt-4">
-                        <button type="submit" class="btn" style="background-color: #2A1A40; color: white; padding: 0.75rem 2rem;">
+                        <button type="submit" id="saveGradingWeightsBtn" class="btn btn-primary" disabled>
                             Save Grading Weights
-                        </button>
-                        <button type="button" class="btn btn-secondary ms-2" onclick="resetGradingWeights()">
-                            Reset to Default (25% each)
                         </button>
                     </div>
                     
@@ -533,17 +652,21 @@ async function loadGradingWeights() {
         
         content.innerHTML = html;
         
-        // Add event listeners for real-time total calculation
+        // Add event listeners for real-time total calculation and button state
         const inputs = ['attendance_weight', 'instructor_participation_weight', 'peer_participation_weight', 'poll_weight'];
         inputs.forEach(id => {
-            document.getElementById(id).addEventListener('input', calculateTotalWeight);
+            document.getElementById(id).addEventListener('input', function() {
+                calculateTotalWeight();
+                updateSaveButtonState();
+            });
         });
         
         // Add form submit handler
         document.getElementById('gradingWeightsForm').addEventListener('submit', saveGradingWeights);
         
-        // Calculate initial total
+        // Calculate initial total and update button state
         calculateTotalWeight();
+        updateSaveButtonState();
     } catch (error) {
         console.error('Error loading grading weights:', error);
         document.getElementById('gradingContent').innerHTML = '<div class="text-center text-danger p-4">Error loading grading weights.</div>';
@@ -573,6 +696,22 @@ function calculateTotalWeight() {
         totalElement.classList.add('invalid');
         totalValueElement.style.color = '#dc3545';
     }
+}
+
+// Update save button state based on validation
+function updateSaveButtonState() {
+    const saveButton = document.getElementById('saveGradingWeightsBtn');
+    if (!saveButton) return;
+    
+    const attendance = parseFloat(document.getElementById('attendance_weight').value) || 0;
+    const instructor = parseFloat(document.getElementById('instructor_participation_weight').value) || 0;
+    const peer = parseFloat(document.getElementById('peer_participation_weight').value) || 0;
+    const poll = parseFloat(document.getElementById('poll_weight').value) || 0;
+    
+    const total = attendance + instructor + peer + poll;
+    const isValid = Math.abs(total - 100) < 0.01;
+    
+    saveButton.disabled = !isValid;
 }
 
 // Save grading weights
@@ -635,24 +774,114 @@ async function saveGradingWeights(event) {
     }
 }
 
-// Reset to default weights
-function resetGradingWeights() {
-    if (confirm('Reset all weights to 25% each?')) {
-        document.getElementById('attendance_weight').value = 25.0;
-        document.getElementById('instructor_participation_weight').value = 25.0;
-        document.getElementById('peer_participation_weight').value = 25.0;
-        document.getElementById('poll_weight').value = 25.0;
-        calculateTotalWeight();
-    }
-}
-
 // Export gradebook to Excel
 function exportGradebook() {
     window.location.href = `/api/export_gradebook/${classId}`;
 }
 
+// Sorting functionality - store state per table
+const tableSortState = {};
+
+// Initialize sorting for all tables
+function initSorting() {
+    // Use event delegation on document to handle dynamically added tables
+    document.removeEventListener('click', handleSortClick);
+    document.addEventListener('click', handleSortClick);
+}
+
+function handleSortClick(event) {
+    const header = event.target.closest('.sortable');
+    if (!header) return;
+    
+    const column = header.dataset.sort;
+    const type = header.dataset.type;
+    
+    if (!column || !type) return;
+    
+    // Get the table this header belongs to
+    const table = header.closest('table');
+    if (!table) return;
+    
+    const tableBodyId = table.querySelector('tbody')?.id;
+    if (!tableBodyId) return;
+    
+    // Initialize sort state for this table if needed
+    if (!tableSortState[tableBodyId]) {
+        tableSortState[tableBodyId] = { column: null, direction: null };
+    }
+    
+    const state = tableSortState[tableBodyId];
+    
+    // Remove sort classes from all headers in this table
+    table.querySelectorAll('.sortable').forEach(h => {
+        h.classList.remove('asc', 'desc');
+    });
+    
+    // Toggle sort direction if clicking the same column, otherwise start ascending
+    if (state.column === column) {
+        // Toggle direction: asc -> desc, desc -> asc
+        state.direction = state.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        // New column, start with ascending
+        state.column = column;
+        state.direction = 'asc';
+    }
+    
+    // Apply visual indicator
+    header.classList.add(state.direction);
+    
+    // Sort the table
+    sortTable(tableBodyId, column, state.direction, type);
+}
+
+function sortTable(tableBodyId, column, direction, type) {
+    const tbody = document.getElementById(tableBodyId);
+    if (!tbody) return;
+    
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    if (rows.length === 0) return;
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        // Convert column name to dataset property name (underscore to camelCase)
+        // e.g., 'student_number' -> 'studentNumber', 'attendance_grade' -> 'attendanceGrade'
+        const dataAttr = column.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+        let aValue = a.dataset[dataAttr] || '';
+        let bValue = b.dataset[dataAttr] || '';
+        
+        // Handle numeric sorting
+        if (type === 'number') {
+            aValue = parseFloat(aValue) || 0;
+            bValue = parseFloat(bValue) || 0;
+            return direction === 'asc' ? aValue - bValue : bValue - aValue;
+        }
+        
+        // Handle text sorting (case-insensitive)
+        aValue = aValue.toString().toLowerCase();
+        bValue = bValue.toString().toLowerCase();
+        
+        if (aValue < bValue) {
+            return direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+            return direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+    });
+    
+    // Remove all rows from tbody
+    rows.forEach(row => tbody.removeChild(row));
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
 // Load data when tab is shown
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize sorting
+    initSorting();
+    
     // Load gradebook initially
     loadGradebook();
     

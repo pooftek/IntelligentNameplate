@@ -29,6 +29,12 @@
         width: 100%;
     }
     
+    .students-header .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        max-width: 100%;
+    }
+    
     .students-header-container {
         width: 100%;
         padding: 0;
@@ -190,6 +196,11 @@
         gap: 0.25rem;
         flex-wrap: wrap;
         align-items: center;
+        justify-content: flex-start;
+    }
+    
+    .table tbody td:last-child {
+        text-align: left;
     }
     
     .btn-group .btn {
@@ -197,19 +208,30 @@
     }
     
     /* Square buttons for edit and remove */
-    .btn-group .btn.btn-outline-primary,
-    .btn-group .btn.btn-outline-danger {
-        width: 2rem;
-        height: 2rem;
-        padding: 0;
+    .btn-square {
+        width: 2rem !important;
+        height: 2rem !important;
+        min-width: 2rem;
+        min-height: 2rem;
+        max-width: 2rem;
+        max-height: 2rem;
+        padding: 0 !important;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 0.875rem;
+        border-radius: 5px;
+        box-sizing: border-box;
     }
     
-    .btn-group .btn.btn-outline-primary i,
-    .btn-group .btn.btn-outline-danger i {
+    /* Edit button in active students table - matches width from edit to delete in inactive table */
+    #activeStudentsTableBody .btn-square {
+        width: 4.5rem !important;
+        min-width: 4.5rem;
+        max-width: 4.5rem;
+    }
+    
+    .btn-square i {
         font-size: 0.875rem;
     }
     
@@ -254,7 +276,11 @@
     }
     
     .sortable:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(91, 66, 120, 1);
+    }
+    
+    .inactive-section .sortable:hover {
+        background-color: #5a6268;
     }
     
     .sortable::after {
@@ -276,12 +302,24 @@
     
     .btn-status {
         border: none;
-        padding: 0.4rem 0.75rem;
+        padding: 0.4rem 1.25rem;
         border-radius: 5px;
         cursor: pointer;
         transition: all 0.2s;
         font-weight: 600;
         font-size: 0.875rem;
+        height: 2rem;
+        min-height: 2rem;
+        max-height: 2rem;
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+    }
+    
+    .btn-status i {
+        margin: 0;
     }
     
     .btn-status.active {
@@ -308,7 +346,7 @@
         color: #2A1A40;
         font-weight: 600;
         margin-bottom: 1rem;
-        font-size: 1.25rem;
+        font-size: 1.75rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -334,6 +372,28 @@
         align-items: center;
         gap: 0.5rem;
     }
+    
+    .responsive-title {
+        font-size: clamp(2rem, 6vw, 4rem);
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        min-width: 0;
+        line-height: 1.3;
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+    
+    .students-header-title-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        min-width: 0;
+        flex: 1;
+        margin-left: 1.5rem;
+    }
 </style>
 {% endblock %}
 
@@ -342,12 +402,12 @@
     <div class="students-header">
         <div class="container">
         <div class="d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-3">
-                <a href="/classroom/{{ class_obj.id }}" class="btn btn-outline-light">
-                    <i class="bi bi-arrow-left"></i> Back
-                </a>
-                <h1 class="text-white mb-0">Students - {{ class_obj.name }}</h1>
+            <div class="students-header-title-container">
+                <h1 class="text-white responsive-title"><span style="font-weight: bold;">Students:</span> <span style="font-weight: normal;">{{ class_obj.name }}</span></h1>
             </div>
+            <a href="/classroom/{{ class_obj.id }}" class="btn btn-outline-light" style="flex-shrink: 0; margin-right: 1.5rem;">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
         </div>
         </div>
     </div>
@@ -355,7 +415,6 @@
     <div class="students-content">
         <!-- Excel Import Section -->
         <div class="import-section">
-            <h5 class="mb-3" style="color: #2A1A40;">Import Students from Excel</h5>
             <div class="import-buttons">
                 <button class="btn btn-download" onclick="downloadTemplate()">
                     <i class="bi bi-download"></i> Download Excel Template
@@ -402,11 +461,11 @@
                         <td title="{{ student.student_number }}">{{ student.student_number }}</td>
                         <td>
                             <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary" onclick="editStudent({{ student.id }})" title="Edit Student">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
                                 <button class="btn-status active" onclick="toggleStudentStatus({{ student.id }}, true, '{{ student.first_name }} {{ student.last_name }}')" title="Click to deactivate">
                                     <i class="bi bi-check-circle"></i> Active
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary btn-square" onclick="editStudent({{ student.id }})" title="Edit Student">
+                                    <i class="bi bi-pencil"></i>
                                 </button>
                             </div>
                         </td>
@@ -449,13 +508,13 @@
                             <td title="{{ student.student_number }}">{{ student.student_number }}</td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="editStudent({{ student.id }})" title="Edit Student">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
                                     <button class="btn-status inactive" onclick="toggleStudentStatus({{ student.id }}, false, '{{ student.first_name }} {{ student.last_name }}')" title="Click to reactivate">
                                         <i class="bi bi-x-circle"></i> Inactive
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="removeStudent({{ student.id }}, '{{ student.first_name }} {{ student.last_name }}')" title="Remove Student">
+                                    <button class="btn btn-sm btn-outline-primary btn-square" onclick="editStudent({{ student.id }})" title="Edit Student">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger btn-square" onclick="removeStudent({{ student.id }}, '{{ student.first_name }} {{ student.last_name }}')" title="Remove Student">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -1010,18 +1069,18 @@ function createStudentRow(studentData, isActive) {
     
     let actionsHtml = `
         <div class="btn-group" role="group">
-            <button class="btn btn-sm btn-outline-primary" onclick="editStudent(${studentData.id})" title="Edit Student">
-                <i class="bi bi-pencil"></i>
-            </button>
             <button class="btn-status ${statusClass}" onclick="toggleStudentStatus(${studentData.id}, ${onClickStatus}, '${studentName.replace(/'/g, "\\'")}')" title="${actionText}">
                 <i class="bi ${statusIcon}"></i> ${statusText}
+            </button>
+            <button class="btn btn-sm btn-outline-primary btn-square" onclick="editStudent(${studentData.id})" title="Edit Student">
+                <i class="bi bi-pencil"></i>
             </button>
     `;
     
     // Add remove button only for inactive students
     if (!isActive) {
         actionsHtml += `
-            <button class="btn btn-sm btn-outline-danger" onclick="removeStudent(${studentData.id}, '${studentName.replace(/'/g, "\\'")}')" title="Remove Student">
+            <button class="btn btn-sm btn-outline-danger btn-square" onclick="removeStudent(${studentData.id}, '${studentName.replace(/'/g, "\\'")}')" title="Remove Student">
                 <i class="bi bi-trash"></i>
             </button>
         `;

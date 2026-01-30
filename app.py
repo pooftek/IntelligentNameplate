@@ -40,6 +40,7 @@ class Student(UserMixin, db.Model):
     last_name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), nullable=False)
     rfid_card_id = db.Column(db.String(100), unique=True, nullable=True)
+    password_hash = db.Column(db.String(255), nullable=True)  # Nullable for first-time setup
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Class(db.Model):
@@ -132,6 +133,15 @@ class GradingWeights(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     class_obj = db.relationship('Class', backref=db.backref('grading_weights', uselist=False))
+
+class HandRaise(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    cleared = db.Column(db.Boolean, default=False, nullable=False)
+    class_obj = db.relationship('Class', backref=db.backref('hand_raises', lazy=True))
+    student = db.relationship('Student', backref=db.backref('hand_raises', lazy=True))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -591,24 +601,43 @@ def get_class_metrics(class_id):
     
     sessions = ClassSession.query.filter_by(class_id=class_id).order_by(ClassSession.start_time.desc()).all()
     
+    # Get all enrolled students for this class
+    enrolled_students = db.session.query(Student).join(Enrollment).filter(
+        Enrollment.class_id == class_id,
+        Enrollment.is_active == True
+    ).all()
+    enrolled_student_ids = {s.id for s in enrolled_students}
+    
     sessions_data = []
+    session_number = len(sessions)  # Start from highest number (most recent first)
+    
     for session in sessions:
         session_date = session.start_time.date()
-        
-        # Get engagement metrics from Participation records for this date
-        participations = Participation.query.filter_by(
-            class_id=class_id,
-            date=session_date
-        ).all()
-        
-        total_hand_raises = sum(p.hand_raises or 0 for p in participations)
-        total_thumbs_up = sum(p.thumbs_up or 0 for p in participations)
-        total_thumbs_down = sum(p.thumbs_down or 0 for p in participations)
-        
-        # Get poll results for polls created during this session
         session_start = session.start_time
         session_end = session.end_time if session.end_time else datetime.utcnow()
         
+        # Get present students count
+        present_students = Attendance.query.filter_by(
+            class_id=class_id,
+            date=session_date,
+            present=True
+        ).all()
+        attendance_count = len(present_students)
+        
+        # Calculate attendance percentage based on total enrolled students
+        total_enrolled = len(enrolled_students)
+        attendance_percentage = (attendance_count / total_enrolled * 100) if total_enrolled > 0 else 0
+        
+        # Get unique hands raised (count distinct students who raised hands during this session)
+        # Count hand raises that occurred during this session
+        hand_raises_during_session = HandRaise.query.filter(
+            HandRaise.class_id == class_id,
+            HandRaise.timestamp >= session_start,
+            HandRaise.timestamp <= session_end
+        ).all()
+        unique_hands_raised = len(set(hr.student_id for hr in hand_raises_during_session))
+        
+        # Get poll results for polls created during this session
         polls = Poll.query.filter(
             Poll.class_id == class_id,
             Poll.created_at >= session_start,
@@ -616,54 +645,86 @@ def get_class_metrics(class_id):
         ).all()
         
         poll_results = []
+        # Calculate poll vote percentage: unique students who voted / attendance count
+        unique_poll_voters = set()
         for poll in polls:
             responses = PollResponse.query.filter_by(poll_id=poll.id).all()
+            # Track unique students who voted
+            for response in responses:
+                unique_poll_voters.add(response.student_id)
+            
             option_counts = {}
             options = json.loads(poll.options)
             for i in range(len(options)):
                 option_counts[i] = sum(1 for r in responses if r.answer == i)
             
             poll_results.append({
+                'poll_id': poll.id,
                 'question': poll.question,
                 'options': options,
                 'option_counts': option_counts,
-                'total_responses': len(responses)
+                'total_responses': len(responses),
+                'is_graded': poll.is_graded
             })
         
-        # Get attendance list with sign in/out times
+        # Calculate overall poll vote percentage for the session
+        poll_vote_percentage = (len(unique_poll_voters) / attendance_count * 100) if attendance_count > 0 else 0
+        
+        # Get attendance records for this session date
         attendances = Attendance.query.filter_by(
             class_id=class_id,
             date=session_date
         ).all()
         
+        # Create a map of student_id to attendance record
+        attendance_map = {att.student_id: att for att in attendances}
+        
+        # Build attendance list with ALL enrolled students
         attendance_list = []
-        for att in attendances:
-            student = Student.query.get(att.student_id)
-            # For now, use timestamp as sign-in time
-            # In a more complete system, you might want separate sign-in/sign-out records
-            sign_in_time = att.timestamp
-            sign_out_time = None  # Could be implemented with a separate model
+        for student in enrolled_students:
+            att = attendance_map.get(student.id)
+            
+            if att:
+                sign_in_time = att.join_time if att.join_time else att.timestamp
+                # Only show sign out time if student left before professor ended the class
+                # If class hasn't ended (session_end is None or is current time), show leave_time if it exists
+                # If class has ended, only show leave_time if it's before the session end time
+                sign_out_time = None
+                if att.leave_time:
+                    if session.end_time is None:
+                        # Class hasn't ended yet, show leave_time if it exists (early logout)
+                        sign_out_time = att.leave_time
+                    elif att.leave_time < session.end_time:
+                        # Class has ended, only show if student left before class ended
+                        sign_out_time = att.leave_time
+            else:
+                sign_in_time = None
+                sign_out_time = None
             
             attendance_list.append({
+                'student_id': student.id,
                 'student_number': student.student_number,
-                'student_name': f"{student.first_name} {student.last_name}",
+                'student_name': f"{student.preferred_name or student.first_name} {student.last_name}",
                 'sign_in_time': sign_in_time.isoformat() if sign_in_time else None,
                 'sign_out_time': sign_out_time.isoformat() if sign_out_time else None,
-                'present': att.present
+                'present': att.present if att else False
             })
         
         sessions_data.append({
             'session_id': session.id,
+            'session_number': session_number,
             'start_time': session.start_time.isoformat(),
             'end_time': session.end_time.isoformat() if session.end_time else None,
             'engagement_metrics': {
-                'hands_raised': total_hand_raises,
-                'thumbs_up': total_thumbs_up,
-                'thumbs_down': total_thumbs_down
+                'attendance': round(attendance_percentage, 1),
+                'unique_hands_raised': unique_hands_raised,
+                'poll_vote_percentage': round(poll_vote_percentage, 1)
             },
             'poll_results': poll_results,
             'attendance_list': attendance_list
         })
+        
+        session_number -= 1  # Decrement for next session
     
     return jsonify(sessions_data)
 
@@ -942,6 +1003,115 @@ def add_student_to_class():
     db.session.commit()
     
     return jsonify({'success': True})
+
+@app.route('/api/create_and_add_student/<int:class_id>', methods=['POST'])
+@login_required
+def create_and_add_student(class_id):
+    """Create a new student and add them to the class"""
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    data = request.get_json()
+    
+    # Safely extract and strip fields, handling None values
+    first_name = (data.get('first_name') or '').strip() if data.get('first_name') is not None else ''
+    last_name = (data.get('last_name') or '').strip() if data.get('last_name') is not None else ''
+    preferred_name_raw = data.get('preferred_name')
+    preferred_name = preferred_name_raw.strip() if preferred_name_raw else None
+    student_number = (data.get('student_number') or '').strip() if data.get('student_number') is not None else ''
+    email = (data.get('email') or '').strip() if data.get('email') is not None else ''
+    rfid_card_id_raw = data.get('rfid_card_id')
+    rfid_card_id = rfid_card_id_raw.strip() if rfid_card_id_raw else None
+    
+    # Validate required fields
+    if not first_name or not last_name or not student_number or not email:
+        return jsonify({'success': False, 'error': 'First name, last name, student number, and email are required'}), 400
+    
+    # Validate student number format (exactly 9 digits, no more, no less)
+    if not student_number.isdigit():
+        return jsonify({'success': False, 'error': 'Student number must contain only digits'}), 400
+    
+    if len(student_number) != 9:
+        return jsonify({'success': False, 'error': f'Student number must be exactly 9 digits. You entered {len(student_number)} digit(s).'}), 400
+    
+    # Validate email format
+    if '@' not in email:
+        return jsonify({'success': False, 'error': 'Invalid email format'}), 400
+    
+    # Check if student already exists by student_number OR email (to ensure one account per student)
+    existing_student = Student.query.filter_by(student_number=student_number).first()
+    if not existing_student:
+        # Also check by email to ensure uniqueness across classes
+        existing_student = Student.query.filter_by(email=email).first()
+    
+    if existing_student:
+        # Student exists, just enroll them if not already enrolled
+        enrollment = Enrollment.query.filter_by(
+            class_id=class_id,
+            student_id=existing_student.id
+        ).first()
+        
+        if enrollment:
+            return jsonify({'success': False, 'error': 'Student is already enrolled in this class'}), 400
+        
+        # Update student info if provided (but don't change student_number or email if they differ)
+        if existing_student.first_name != first_name:
+            existing_student.first_name = first_name
+        if existing_student.last_name != last_name:
+            existing_student.last_name = last_name
+        if existing_student.preferred_name != preferred_name:
+            existing_student.preferred_name = preferred_name
+        # Only update email if it matches (to maintain account uniqueness)
+        if existing_student.email != email and existing_student.student_number == student_number:
+            existing_student.email = email
+        if rfid_card_id and existing_student.rfid_card_id != rfid_card_id:
+            # Check if RFID is already taken by another student
+            rfid_student = Student.query.filter_by(rfid_card_id=rfid_card_id).first()
+            if rfid_student and rfid_student.id != existing_student.id:
+                return jsonify({'success': False, 'error': 'RFID card ID already in use by another student'}), 400
+            existing_student.rfid_card_id = rfid_card_id
+        
+        student = existing_student
+    else:
+        # Create new student - check if student_number or email conflicts
+        # Check if student number is already taken
+        if Student.query.filter_by(student_number=student_number).first():
+            return jsonify({'success': False, 'error': 'Student number already exists'}), 400
+        # Check if email is already taken
+        if Student.query.filter_by(email=email).first():
+            return jsonify({'success': False, 'error': 'Email already exists'}), 400
+        # Check if RFID is already taken
+        if rfid_card_id and Student.query.filter_by(rfid_card_id=rfid_card_id).first():
+            return jsonify({'success': False, 'error': 'RFID card ID already in use'}), 400
+        
+        student = Student(
+            student_number=student_number,
+            first_name=first_name,
+            last_name=last_name,
+            preferred_name=preferred_name,
+            email=email,
+            rfid_card_id=rfid_card_id
+        )
+        db.session.add(student)
+        db.session.flush()
+    
+    # Enroll student in class
+    enrollment = Enrollment(class_id=class_id, student_id=student.id, is_active=True)
+    db.session.add(enrollment)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'student': {
+            'id': student.id,
+            'student_number': student.student_number,
+            'first_name': student.first_name,
+            'last_name': student.last_name,
+            'preferred_name': student.preferred_name,
+            'email': student.email
+        }
+    })
 
 @app.route('/api/toggle_student_status/<int:class_id>/<int:student_id>', methods=['POST'])
 @login_required
@@ -1439,11 +1609,14 @@ def upload_students(class_id):
                 first_name = first_name.strip() if first_name else None
                 last_name = last_name.strip() if last_name else None
                 
-                # Check if student exists by student_number (in database)
+                # Check if student exists by student_number OR email (to ensure one account per student)
                 existing_student = Student.query.filter_by(student_number=student_number).first()
+                if not existing_student:
+                    # Also check by email to ensure uniqueness across classes
+                    existing_student = Student.query.filter_by(email=email).first()
                 
                 if existing_student:
-                    # Update existing student if needed
+                    # Update existing student if needed (but maintain account uniqueness)
                     updated = False
                     if existing_student.first_name != first_name:
                         existing_student.first_name = first_name
@@ -1454,7 +1627,8 @@ def upload_students(class_id):
                     if existing_student.preferred_name != preferred_name:
                         existing_student.preferred_name = preferred_name
                         updated = True
-                    if existing_student.email != email:
+                    # Only update email if student_number matches (to maintain account uniqueness)
+                    if existing_student.email != email and existing_student.student_number == student_number:
                         existing_student.email = email
                         updated = True
                     
@@ -1577,11 +1751,14 @@ def upload_students(class_id):
                 first_name = first_name.strip() if first_name else None
                 last_name = last_name.strip() if last_name else None
                 
-                # Check if student exists by student_number (in database)
+                # Check if student exists by student_number OR email (to ensure one account per student)
                 existing_student = Student.query.filter_by(student_number=student_number).first()
+                if not existing_student:
+                    # Also check by email to ensure uniqueness across classes
+                    existing_student = Student.query.filter_by(email=email).first()
                 
                 if existing_student:
-                    # Update existing student if needed
+                    # Update existing student if needed (but maintain account uniqueness)
                     updated = False
                     if existing_student.first_name != first_name:
                         existing_student.first_name = first_name
@@ -1592,7 +1769,8 @@ def upload_students(class_id):
                     if existing_student.preferred_name != preferred_name:
                         existing_student.preferred_name = preferred_name
                         updated = True
-                    if existing_student.email != email:
+                    # Only update email if student_number matches (to maintain account uniqueness)
+                    if existing_student.email != email and existing_student.student_number == student_number:
                         existing_student.email = email
                         updated = True
                     
@@ -1644,58 +1822,119 @@ def upload_students(class_id):
 def student_interface():
     return render_template('student_interface.html')
 
+def check_student_enrollment(student_id):
+    """Check if student is enrolled in at least one class"""
+    enrollment = Enrollment.query.filter_by(student_id=student_id).first()
+    return enrollment is not None
+
 @app.route('/api/student/login', methods=['POST'])
 def student_login():
     data = request.get_json()
     rfid_card_id = data.get('rfid_card_id')
-    student_number = data.get('student_number')
+    email = data.get('email')
+    password = data.get('password')
     
+    student = None
+    
+    # Login via RFID card tap (no password required)
     if rfid_card_id:
         student = Student.query.filter_by(rfid_card_id=rfid_card_id).first()
-    elif student_number:
-        student = Student.query.filter_by(student_number=student_number).first()
+        if student:
+            # Check if student is enrolled in any class
+            if not check_student_enrollment(student.id):
+                return jsonify({'success': False, 'error': 'You are not registered in any class. Please contact your professor.'})
+            
+            # If student has no password set, they need to set one
+            if not student.password_hash:
+                session['student_id'] = student.id
+                session['needs_password'] = True
+                return jsonify({
+                    'success': True,
+                    'needs_password': True,
+                    'student': {
+                        'id': student.id,
+                        'student_number': student.student_number,
+                        'first_name': student.first_name,
+                        'last_name': student.last_name,
+                        'email': student.email
+                    }
+                })
+            # If password is set, login successful
+            session['student_id'] = student.id
+            session['needs_password'] = False
+            return jsonify({
+                'success': True,
+                'needs_password': False,
+                'student': {
+                    'id': student.id,
+                    'student_number': student.student_number,
+                    'first_name': student.first_name,
+                    'last_name': student.last_name
+                }
+            })
+    
+    # Login via email + password
+    elif email and password:
+        student = Student.query.filter_by(email=email).first()
+        if student:
+            # Check if student is enrolled in any class
+            if not check_student_enrollment(student.id):
+                return jsonify({'success': False, 'error': 'You are not registered in any class. Please contact your professor.'})
+            
+            if not student.password_hash:
+                # Student exists but hasn't set password yet
+                return jsonify({
+                    'success': False,
+                    'error': 'Please set your password first. Use the "Set Password / Register" option or your RFID card.',
+                    'needs_password': True
+                })
+            
+            if check_password_hash(student.password_hash, password):
+                session['student_id'] = student.id
+                session['needs_password'] = False
+                return jsonify({
+                    'success': True,
+                    'needs_password': False,
+                    'student': {
+                        'id': student.id,
+                        'student_number': student.student_number,
+                        'first_name': student.first_name,
+                        'last_name': student.last_name
+                    }
+                })
+            else:
+                return jsonify({'success': False, 'error': 'Invalid email or password'})
+        else:
+            return jsonify({'success': False, 'error': 'Student not found. Please make sure you are registered in a class by your professor.'})
     else:
-        return jsonify({'success': False, 'error': 'No identification provided'})
+        return jsonify({'success': False, 'error': 'Please provide RFID card or email and password'})
     
-    if student:
-        session['student_id'] = student.id
-        return jsonify({
-            'success': True,
-            'student': {
-                'id': student.id,
-                'student_number': student.student_number,
-                'first_name': student.first_name,
-                'last_name': student.last_name
-            }
-        })
-    
-    return jsonify({'success': False, 'error': 'Student not found'})
+    return jsonify({'success': False, 'error': 'Student not found. Please make sure you are registered in a class by your professor.'})
 
-@app.route('/api/student/register', methods=['POST'])
-def student_register():
+@app.route('/api/student/find_for_password', methods=['POST'])
+def find_student_for_password():
+    """Find student by student number or email for password setup"""
     data = request.get_json()
-    student_number = data.get('student_number')
-    first_name = data.get('first_name')
-    last_name = data.get('last_name')
-    email = data.get('email')
-    rfid_card_id = data.get('rfid_card_id')
+    identifier = data.get('identifier', '').strip()
     
-    if not email:
-        return jsonify({'success': False, 'error': 'Email is required'})
+    if not identifier:
+        return jsonify({'success': False, 'error': 'Please enter your student number or email'})
     
-    if Student.query.filter_by(student_number=student_number).first():
-        return jsonify({'success': False, 'error': 'Student number already exists'})
+    # Try to find by student number (9 digits) or email
+    student = None
+    if identifier.isdigit() and len(identifier) == 9:
+        student = Student.query.filter_by(student_number=identifier).first()
+    else:
+        student = Student.query.filter_by(email=identifier).first()
     
-    student = Student(
-        student_number=student_number,
-        first_name=first_name,
-        last_name=last_name,
-        email=email,
-        rfid_card_id=rfid_card_id
-    )
-    db.session.add(student)
-    db.session.commit()
+    if not student:
+        return jsonify({'success': False, 'error': 'Student not found. Please make sure you are registered in a class by your professor.'})
     
+    # Check if student is enrolled in any class
+    if not check_student_enrollment(student.id):
+        return jsonify({'success': False, 'error': 'You are not registered in any class. Please contact your professor.'})
+    
+    # Set session for password setup
     session['student_id'] = student.id
     
     return jsonify({
@@ -1704,12 +1943,85 @@ def student_register():
             'id': student.id,
             'student_number': student.student_number,
             'first_name': student.first_name,
+            'last_name': student.last_name,
+            'email': student.email,
+            'has_password': student.password_hash is not None
+        }
+    })
+
+@app.route('/api/student/set_password', methods=['POST'])
+def student_set_password():
+    """Set password for student on first login"""
+    student_id = session.get('student_id')
+    if not student_id:
+        return jsonify({'success': False, 'error': 'Not authenticated. Please find your account first using the "Set Password / Register" option.'})
+    
+    data = request.get_json()
+    password = data.get('password')
+    confirm_password = data.get('confirm_password')
+    
+    if not password or not confirm_password:
+        return jsonify({'success': False, 'error': 'Password and confirmation are required'})
+    
+    if password != confirm_password:
+        return jsonify({'success': False, 'error': 'Passwords do not match'})
+    
+    if len(password) < 6:
+        return jsonify({'success': False, 'error': 'Password must be at least 6 characters long'})
+    
+    student = Student.query.get(student_id)
+    if not student:
+        return jsonify({'success': False, 'error': 'Student not found'})
+    
+    # Check if student is enrolled in any class
+    if not check_student_enrollment(student.id):
+        return jsonify({'success': False, 'error': 'You are not registered in any class. Please contact your professor.'})
+    
+    # Set the password
+    student.password_hash = generate_password_hash(password)
+    db.session.commit()
+    
+    session['needs_password'] = False
+    
+    return jsonify({
+        'success': True,
+        'message': 'Password set successfully',
+        'student': {
+            'id': student.id,
+            'student_number': student.student_number,
+            'first_name': student.first_name,
             'last_name': student.last_name
+        }
+    })
+
+@app.route('/api/student/current', methods=['GET'])
+def get_current_student():
+    """Get current logged-in student info"""
+    student_id = session.get('student_id')
+    if not student_id:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    student = Student.query.get(student_id)
+    if not student:
+        return jsonify({'success': False, 'error': 'Student not found'}), 404
+    
+    return jsonify({
+        'success': True,
+        'student': {
+            'id': student.id,
+            'student_number': student.student_number,
+            'first_name': student.first_name,
+            'last_name': student.last_name,
+            'email': student.email
         }
     })
 
 @app.route('/api/student/classes')
 def get_active_classes():
+    """Get list of active classes for student to join"""
+    # Check if student is logged in (optional - students can view classes before joining)
+    student_id = session.get('student_id')
+    
     active_classes = Class.query.filter_by(is_active=True).all()
     return jsonify([{
         'id': c.id,
@@ -1822,6 +2134,11 @@ def student_interaction():
         if not interaction_type:
             return jsonify({'success': False, 'error': 'Interaction type required'})
         
+        # Check if quiet mode is enabled
+        settings = ClassSettings.query.filter_by(class_id=class_id).first()
+        if settings and settings.quiet_mode and interaction_type in ['hand_raise', 'thumbs_up', 'thumbs_down']:
+            return jsonify({'success': False, 'error': 'Quiet mode is enabled. Participation is disabled.'})
+        
         today = datetime.utcnow().date()
         participation = Participation.query.filter_by(
             class_id=class_id,
@@ -1845,24 +2162,82 @@ def student_interaction():
         if participation.thumbs_down is None:
             participation.thumbs_down = 0
         
+        # Check current state for toggle behavior
+        action = 'toggle'  # Default to toggle
+        if 'action' in data:
+            action = data.get('action')  # 'raise' or 'lower'
+        
         if interaction_type == 'hand_raise':
-            participation.hand_raises += 1
+            # Check if student already has an active (not cleared) hand raise
+            active_hand_raise = HandRaise.query.filter_by(
+                class_id=class_id,
+                student_id=student_id,
+                cleared=False
+            ).first()
+            
+            if active_hand_raise:
+                # Lower hand (toggle off)
+                active_hand_raise.cleared = True
+                # Don't increment participation count when lowering
+            else:
+                # Raise hand (toggle on)
+                participation.hand_raises += 1
+                hand_raise = HandRaise(
+                    class_id=class_id,
+                    student_id=student_id,
+                    timestamp=datetime.utcnow()
+                )
+                db.session.add(hand_raise)
+                
         elif interaction_type == 'thumbs_up':
-            participation.thumbs_up += 1
+            # Toggle thumbs up - use simple on/off toggle
+            # If count is 0 or even, it's off; if odd, it's on
+            current_count = participation.thumbs_up or 0
+            if current_count % 2 == 0:
+                # Currently off, turn on (make it odd)
+                participation.thumbs_up = current_count + 1
+            else:
+                # Currently on, turn off (make it even, but keep at least 1 for tracking)
+                participation.thumbs_up = max(0, current_count - 1)
+                
         elif interaction_type == 'thumbs_down':
-            participation.thumbs_down += 1
+            # Toggle thumbs down - use simple on/off toggle
+            current_count = participation.thumbs_down or 0
+            if current_count % 2 == 0:
+                # Currently off, turn on (make it odd)
+                participation.thumbs_down = current_count + 1
+            else:
+                # Currently on, turn off (make it even, but keep at least 1 for tracking)
+                participation.thumbs_down = max(0, current_count - 1)
         else:
             return jsonify({'success': False, 'error': 'Invalid interaction type'})
         
         db.session.commit()
         
+        # Determine if interaction is now active
+        is_active = False
+        if interaction_type == 'hand_raise':
+            is_active = HandRaise.query.filter_by(
+                class_id=class_id,
+                student_id=student_id,
+                cleared=False
+            ).first() is not None
+        elif interaction_type == 'thumbs_up':
+            is_active = (participation.thumbs_up or 0) % 2 == 1
+        elif interaction_type == 'thumbs_down':
+            is_active = (participation.thumbs_down or 0) % 2 == 1
+        
+        # Refresh participation to get updated values
+        db.session.refresh(participation)
+        
         socketio.emit('student_interaction', {
             'student_id': student_id,
             'class_id': class_id,
-            'type': interaction_type
+            'type': interaction_type,
+            'is_active': is_active
         }, room=f'class_{class_id}')
         
-        return jsonify({'success': True})
+        return jsonify({'success': True, 'is_active': is_active})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1910,6 +2285,343 @@ def student_poll_response():
     }, room=f'class_{poll.class_id}')
     
     return jsonify({'success': True, 'is_correct': is_correct})
+
+# Live Dashboard APIs
+@app.route('/api/live_dashboard/<int:class_id>')
+@login_required
+def live_dashboard(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    today = datetime.utcnow().date()
+    
+    # Get settings
+    settings = ClassSettings.query.filter_by(class_id=class_id).first()
+    if not settings:
+        settings = ClassSettings(class_id=class_id)
+        db.session.add(settings)
+        db.session.commit()
+    
+    # Get total enrolled students
+    total_students = db.session.query(Student).join(Enrollment).filter(
+        Enrollment.class_id == class_id,
+        Enrollment.is_active == True
+    ).count()
+    
+    # Get present students
+    present_students = db.session.query(Student).join(Attendance).filter(
+        Attendance.class_id == class_id,
+        Attendance.date == today,
+        Attendance.present == True
+    ).all()
+    
+    # Get hands raised (not cleared, ordered by timestamp)
+    hands_raised = db.session.query(HandRaise, Student).join(Student).filter(
+        HandRaise.class_id == class_id,
+        HandRaise.cleared == False
+    ).order_by(HandRaise.timestamp.asc()).all()
+    
+    hands_raised_list = []
+    for hand_raise, student in hands_raised:
+        hands_raised_list.append({
+            'student_id': student.id,
+            'student_number': student.student_number,
+            'first_name': student.first_name,
+            'last_name': student.last_name,
+            'preferred_name': student.preferred_name,
+            'timestamp': hand_raise.timestamp.isoformat()
+        })
+    
+    # Count of currently active (not cleared) hand raises
+    active_hand_raises_count = len(hands_raised_list)
+    
+    # Get participation counts
+    participations = Participation.query.filter_by(
+        class_id=class_id,
+        date=today
+    ).all()
+    
+    unique_participants = len(set(p.student_id for p in participations if (p.hand_raises or 0) + (p.thumbs_up or 0) + (p.thumbs_down or 0) > 0))
+    
+    # Get thumbs up/down counts (only from current session)
+    active_session = ClassSession.query.filter_by(
+        class_id=class_id,
+        end_time=None
+    ).order_by(ClassSession.start_time.desc()).first()
+    
+    thumbs_up_count = 0
+    thumbs_down_count = 0
+    if active_session:
+        # Get thumbs from current session only - count only active (odd numbers)
+        session_participations = Participation.query.filter_by(
+            class_id=class_id,
+            date=today
+        ).all()
+        # Count only students who have thumbs up/down active (odd count)
+        thumbs_up_count = sum(1 for p in session_participations if (p.thumbs_up or 0) % 2 == 1)
+        thumbs_down_count = sum(1 for p in session_participations if (p.thumbs_down or 0) % 2 == 1)
+    
+    # Get active poll
+    active_poll = Poll.query.filter_by(class_id=class_id, is_active=True).first()
+    poll_data = None
+    if active_poll:
+        poll_data = {
+            'poll_id': active_poll.id,
+            'question': active_poll.question,
+            'options': json.loads(active_poll.options),
+            'is_anonymous': active_poll.is_anonymous,
+            'is_graded': active_poll.is_graded
+        }
+    
+    return jsonify({
+        'success': True,
+        'active_hand_raises_count': active_hand_raises_count,
+        'hands_raised': hands_raised_list,
+        'unique_participants': unique_participants,
+        'thumbs_up_count': thumbs_up_count,
+        'thumbs_down_count': thumbs_down_count,
+        'present_students': len(present_students),
+        'total_students': total_students,
+        'active_poll': poll_data,
+        'show_first_name_only': settings.show_first_name_only
+    })
+
+@app.route('/api/live_attendance/<int:class_id>')
+@login_required
+def live_attendance(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    today = datetime.utcnow().date()
+    
+    # Get all enrolled students
+    enrolled_students = db.session.query(Student).join(Enrollment).filter(
+        Enrollment.class_id == class_id,
+        Enrollment.is_active == True
+    ).all()
+    
+    # Get present students
+    present_student_ids = set(
+        db.session.query(Attendance.student_id).filter_by(
+            class_id=class_id,
+            date=today,
+            present=True
+        ).all()
+    )
+    present_student_ids = {id[0] for id in present_student_ids}
+    
+    # Get participation data for all students
+    participations = Participation.query.filter_by(
+        class_id=class_id,
+        date=today
+    ).all()
+    participation_map = {p.student_id: p for p in participations}
+    
+    # Get poll grades
+    poll_responses = PollResponse.query.join(Poll).filter(
+        Poll.class_id == class_id,
+        Poll.is_graded == True
+    ).all()
+    
+    poll_grades = {}
+    for response in poll_responses:
+        student_id = response.student_id
+        if student_id not in poll_grades:
+            poll_grades[student_id] = {'correct': 0, 'total': 0}
+        poll_grades[student_id]['total'] += 1
+        if response.is_correct:
+            poll_grades[student_id]['correct'] += 1
+    
+    present_students = []
+    absent_students = []
+    
+    for student in enrolled_students:
+        participation = participation_map.get(student.id)
+        poll_grade_data = poll_grades.get(student.id, {'correct': 0, 'total': 0})
+        poll_grade = (poll_grade_data['correct'] / poll_grade_data['total'] * 100) if poll_grade_data['total'] > 0 else 0
+        
+        student_data = {
+            'id': student.id,
+            'student_number': student.student_number,
+            'first_name': student.first_name,
+            'last_name': student.last_name,
+            'preferred_name': student.preferred_name,
+            'hand_raises': participation.hand_raises if participation else 0,
+            'thumbs_up': participation.thumbs_up if participation else 0,
+            'thumbs_down': participation.thumbs_down if participation else 0,
+            'poll_grade': round(poll_grade, 1),
+            'participation_freq': (participation.hand_raises or 0) + (participation.thumbs_up or 0) + (participation.thumbs_down or 0) if participation else 0
+        }
+        
+        if student.id in present_student_ids:
+            present_students.append(student_data)
+        else:
+            absent_students.append(student_data)
+    
+    return jsonify({
+        'success': True,
+        'present_students': present_students,
+        'absent_students': absent_students
+    })
+
+@app.route('/api/live_preferences/<int:class_id>')
+@login_required
+def live_preferences(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    settings = ClassSettings.query.filter_by(class_id=class_id).first()
+    if not settings:
+        settings = ClassSettings(class_id=class_id)
+        db.session.add(settings)
+        db.session.commit()
+    
+    # Get current session's exclude_from_grading status
+    active_session = ClassSession.query.filter_by(
+        class_id=class_id,
+        end_time=None
+    ).order_by(ClassSession.start_time.desc()).first()
+    
+    exclude_from_grading = active_session.exclude_from_grading if active_session else False
+    
+    return jsonify({
+        'success': True,
+        'quiet_mode': settings.quiet_mode,
+        'show_first_name_only': settings.show_first_name_only,
+        'exclude_from_grading': exclude_from_grading
+    })
+
+@app.route('/api/clear_hands_raised/<int:class_id>', methods=['POST'])
+@login_required
+def clear_hands_raised(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    HandRaise.query.filter_by(
+        class_id=class_id,
+        cleared=False
+    ).update({'cleared': True})
+    
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/clear_participation_count/<int:class_id>', methods=['POST'])
+@login_required
+def clear_participation_count(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    # This is a conceptual reset - in practice, we might want to track this differently
+    # For now, we'll just return success as the count is calculated from participations
+    return jsonify({'success': True, 'message': 'Participation count is calculated from current session data'})
+
+@app.route('/api/reset_thumbs_up/<int:class_id>', methods=['POST'])
+@login_required
+def reset_thumbs_up(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    # Reset thumbs up for current session
+    today = datetime.utcnow().date()
+    participations = Participation.query.filter_by(
+        class_id=class_id,
+        date=today
+    ).all()
+    
+    for p in participations:
+        if p.thumbs_up and p.thumbs_up > 0:
+            p.thumbs_up = 0
+    
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/reset_thumbs_down/<int:class_id>', methods=['POST'])
+@login_required
+def reset_thumbs_down(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    # Reset thumbs down for current session
+    today = datetime.utcnow().date()
+    participations = Participation.query.filter_by(
+        class_id=class_id,
+        date=today
+    ).all()
+    
+    for p in participations:
+        if p.thumbs_down and p.thumbs_down > 0:
+            p.thumbs_down = 0
+    
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/student/interaction_state/<int:class_id>')
+def get_student_interaction_state(class_id):
+    """Get current interaction states for logged-in student"""
+    student_id = session.get('student_id')
+    if not student_id:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    # Check hand raise
+    hand_raise_active = HandRaise.query.filter_by(
+        class_id=class_id,
+        student_id=student_id,
+        cleared=False
+    ).first() is not None
+    
+    # Check thumbs up/down
+    today = datetime.utcnow().date()
+    participation = Participation.query.filter_by(
+        class_id=class_id,
+        student_id=student_id,
+        date=today
+    ).first()
+    
+    thumbs_up_active = False
+    thumbs_down_active = False
+    if participation:
+        thumbs_up_active = (participation.thumbs_up or 0) % 2 == 1
+        thumbs_down_active = (participation.thumbs_down or 0) % 2 == 1
+    
+    return jsonify({
+        'success': True,
+        'hand_raise_active': hand_raise_active,
+        'thumbs_up_active': thumbs_up_active,
+        'thumbs_down_active': thumbs_down_active
+    })
+
+@app.route('/api/poll_results/<int:poll_id>')
+@login_required
+def poll_results(poll_id):
+    poll = Poll.query.get_or_404(poll_id)
+    class_obj = Class.query.get_or_404(poll.class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    responses = PollResponse.query.filter_by(poll_id=poll_id).all()
+    options = json.loads(poll.options)
+    
+    option_counts = {}
+    for i in range(len(options)):
+        option_counts[i] = sum(1 for r in responses if r.answer == i)
+    
+    return jsonify({
+        'success': True,
+        'question': poll.question,
+        'options': options,
+        'option_counts': option_counts,
+        'total_responses': len(responses)
+    })
 
 # SocketIO Events
 @socketio.on('connect')
@@ -2021,6 +2733,15 @@ def migrate_database():
                 except Exception as e:
                     db.session.rollback()
                     print(f"✗ Error adding email column: {e}")
+            
+            if 'password_hash' not in student_columns:
+                try:
+                    db.session.execute(text('ALTER TABLE student ADD COLUMN password_hash VARCHAR(255)'))
+                    db.session.commit()
+                    print("✓ Added password_hash column to student table")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"✗ Error adding password_hash column: {e}")
         
         # Check if attendance table exists and add missing columns
         if 'attendance' in table_names:
@@ -2079,6 +2800,14 @@ def migrate_database():
                 except Exception as e:
                     db.session.rollback()
                     print(f"✗ Error adding is_active column: {e}")
+        
+        # Check if hand_raise table exists
+        if 'hand_raise' not in table_names:
+            try:
+                # Table will be created by create_all
+                print("✓ hand_raise table will be created")
+            except Exception as e:
+                print(f"✗ Error with hand_raise table: {e}")
         
         # Ensure all tables exist - create_all will handle new tables
         db.create_all()

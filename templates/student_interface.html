@@ -162,12 +162,23 @@
             </div>
             
             <div class="login-screen" id="frontLogin">
-                <h3>Login</h3>
+                <h3>Student Login</h3>
                 <div class="mb-3">
-                    <input type="text" class="form-control" id="rfidInput" placeholder="Tap RFID card or enter student number">
+                    <label class="form-label text-white">Email</label>
+                    <input type="email" class="form-control" id="frontEmailInput" placeholder="Enter your email">
                 </div>
-                <button class="btn btn-light" onclick="studentLogin()">Login</button>
-                <button class="btn btn-link text-white mt-2" onclick="showRegister()">Register New Student</button>
+                <div class="mb-3">
+                    <label class="form-label text-white">Password</label>
+                    <input type="password" class="form-control" id="frontPasswordInput" placeholder="Enter your password">
+                </div>
+                <button class="btn btn-light w-100 mb-2" onclick="studentLogin()">Login with Email</button>
+                <div class="text-center text-white mb-2">OR</div>
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="rfidInput" placeholder="Tap RFID card">
+                </div>
+                <button class="btn btn-light w-100 mb-2" onclick="studentLoginRfid()">Login with RFID</button>
+                <div class="text-center text-white mb-2 mt-3">OR</div>
+                <button class="btn btn-outline-light w-100" onclick="showRegisterModal()">Set Password / Register</button>
             </div>
             
             <div class="main-screen" id="frontMain">
@@ -187,12 +198,23 @@
             </div>
             
             <div class="login-screen" id="backLogin">
-                <h3>Login</h3>
+                <h3>Student Login</h3>
                 <div class="mb-3">
-                    <input type="text" class="form-control" id="backRfidInput" placeholder="Tap RFID card or enter student number">
+                    <label class="form-label text-white">Email</label>
+                    <input type="email" class="form-control" id="backEmailInput" placeholder="Enter your email">
                 </div>
-                <button class="btn btn-light" onclick="studentLogin()">Login</button>
-                <button class="btn btn-link text-white mt-2" onclick="showRegister()">Register New Student</button>
+                <div class="mb-3">
+                    <label class="form-label text-white">Password</label>
+                    <input type="password" class="form-control" id="backPasswordInput" placeholder="Enter your password">
+                </div>
+                <button class="btn btn-light w-100 mb-2" onclick="studentLogin()">Login with Email</button>
+                <div class="text-center text-white mb-2">OR</div>
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="backRfidInput" placeholder="Tap RFID card">
+                </div>
+                <button class="btn btn-light w-100 mb-2" onclick="studentLoginRfid()">Login with RFID</button>
+                <div class="text-center text-white mb-2 mt-3">OR</div>
+                <button class="btn btn-outline-light w-100" onclick="showRegisterModal()">Set Password / Register</button>
             </div>
             
             <div class="main-screen" id="backMain">
@@ -206,13 +228,13 @@
                 <div class="class-id" id="classIdDisplay">Class ID</div>
                 
                 <div class="controls">
-                    <button class="control-btn" onclick="sendInteraction('hand_raise')" title="Raise Hand">
+                    <button class="control-btn" id="handRaiseBtn" onclick="sendInteraction('hand_raise')" title="Raise Hand">
                         <i class="bi bi-hand-index"></i>
                     </button>
-                    <button class="control-btn" onclick="sendInteraction('thumbs_up')" title="Thumbs Up">
+                    <button class="control-btn" id="thumbsUpBtn" onclick="sendInteraction('thumbs_up')" title="Thumbs Up">
                         <i class="bi bi-hand-thumbs-up"></i>
                     </button>
-                    <button class="control-btn" onclick="sendInteraction('thumbs_down')" title="Thumbs Down">
+                    <button class="control-btn" id="thumbsDownBtn" onclick="sendInteraction('thumbs_down')" title="Thumbs Down">
                         <i class="bi bi-hand-thumbs-down"></i>
                     </button>
                 </div>
@@ -229,37 +251,60 @@
         </div>
     </div>
     
-    <!-- Register Modal -->
+    <!-- Register/Set Password Modal -->
     <div class="modal fade" id="registerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Register New Student</h5>
+                    <h5 class="modal-title">Set Your Password</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <p class="text-muted">Enter your student number or email to find your account and set your password.</p>
                     <form id="registerForm">
                         <div class="mb-3">
-                            <label class="form-label" style="color: #000; font-weight: bold;">Student Number</label>
-                            <input type="text" class="form-control" id="regStudentNumber" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" style="color: #000; font-weight: bold;">First Name</label>
-                            <input type="text" class="form-control" id="regFirstName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" style="color: #000; font-weight: bold;">Last Name</label>
-                            <input type="text" class="form-control" id="regLastName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" style="color: #000; font-weight: bold;">RFID Card ID (optional)</label>
-                            <input type="text" class="form-control" id="regRfid">
+                            <label class="form-label" style="color: #000; font-weight: bold;">Student Number or Email <span style="color: red;">*</span></label>
+                            <input type="text" class="form-control" id="registerIdentifier" placeholder="Enter your 9-digit student number or email" required>
+                            <small class="form-text text-muted">Use the student number or email that was registered by your professor</small>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="registerStudent()">Register</button>
+                    <button type="button" class="btn btn-primary" onclick="findStudentForPassword()">Find Account</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Set Password Modal -->
+    <div class="modal fade" id="passwordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Set Your Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Welcome! Please set a password for your account. You'll use this password along with your email to login in the future.</p>
+                    <form id="passwordForm">
+                        <div class="mb-3">
+                            <label class="form-label" style="color: #000; font-weight: bold;">Email</label>
+                            <input type="email" class="form-control" id="passwordEmail" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="color: #000; font-weight: bold;">Password <span style="color: red;">*</span></label>
+                            <input type="password" class="form-control" id="passwordInput" placeholder="At least 6 characters" required minlength="6">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="color: #000; font-weight: bold;">Confirm Password <span style="color: red;">*</span></label>
+                            <input type="password" class="form-control" id="passwordConfirmInput" placeholder="Re-enter your password" required minlength="6">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="setPassword()">Set Password</button>
                 </div>
             </div>
         </div>
@@ -299,11 +344,37 @@
             document.getElementById('backLogin').classList.add('active');
         });
         
+        // Enter key support for login forms
+        document.getElementById('frontEmailInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') studentLogin();
+        });
+        document.getElementById('frontPasswordInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') studentLogin();
+        });
+        document.getElementById('backEmailInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') studentLogin();
+        });
+        document.getElementById('backPasswordInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') studentLogin();
+        });
+        document.getElementById('rfidInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') studentLoginRfid();
+        });
+        document.getElementById('backRfidInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') studentLoginRfid();
+        });
+        document.getElementById('passwordInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') setPassword();
+        });
+        document.getElementById('passwordConfirmInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') setPassword();
+        });
+        
         // Simulate RFID tap
         function simulateRfidTap(rfidId) {
             document.getElementById('rfidInput').value = rfidId;
             document.getElementById('backRfidInput').value = rfidId;
-            studentLogin();
+            studentLoginRfid();
         }
         
         // Update time
@@ -324,47 +395,273 @@
         setInterval(updateBattery, 60000);
         
         async function studentLogin() {
+            const email = document.getElementById('frontEmailInput').value || document.getElementById('backEmailInput').value;
+            const password = document.getElementById('frontPasswordInput').value || document.getElementById('backPasswordInput').value;
+            
+            if (!email || !password) {
+                alert('Please enter both email and password');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/student/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (data.success) {
+                    if (data.needs_password) {
+                        // Student needs to set password
+                        if (data.student) {
+                            showPasswordModal(data.student);
+                        } else {
+                            alert('Error loading student information. Please try again.');
+                        }
+                    } else {
+                        if (data.student) {
+                            currentStudent = data.student;
+                            showClassSelection();
+                        } else {
+                            alert('Error loading student information. Please try again.');
+                        }
+                    }
+                } else {
+                    alert(data.error || 'Login failed');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Error connecting to server. Please check your connection and try again.');
+            }
+        }
+        
+        async function studentLoginRfid() {
             const rfidInput = document.getElementById('rfidInput').value || document.getElementById('backRfidInput').value;
             
-            const response = await fetch('/api/student/login', {
+            if (!rfidInput) {
+                alert('Please tap your RFID card or enter RFID code');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/student/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        rfid_card_id: rfidInput
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (data.success) {
+                    if (data.needs_password) {
+                        // Student needs to set password on first RFID login
+                        if (data.student) {
+                            showPasswordModal(data.student);
+                        } else {
+                            alert('Error loading student information. Please try again.');
+                        }
+                    } else {
+                        if (data.student) {
+                            currentStudent = data.student;
+                            showClassSelection();
+                        } else {
+                            alert('Error loading student information. Please try again.');
+                        }
+                    }
+                } else {
+                    alert(data.error || 'Login failed');
+                }
+            } catch (error) {
+                console.error('RFID login error:', error);
+                alert('Error connecting to server. Please check your connection and try again.');
+            }
+        }
+        
+        function showRegisterModal() {
+            document.getElementById('registerForm').reset();
+            const modal = new bootstrap.Modal(document.getElementById('registerModal'));
+            modal.show();
+        }
+        
+        async function findStudentForPassword() {
+            const identifier = document.getElementById('registerIdentifier').value.trim();
+            
+            if (!identifier) {
+                alert('Please enter your student number or email');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/student/find_for_password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        identifier: identifier
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (data.success) {
+                    if (data.student) {
+                        // Check if password already set
+                        if (data.student.has_password) {
+                            alert('You already have a password set. Please use the login option instead.');
+                            bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
+                            return;
+                        }
+                        
+                        // Show password setup modal
+                        document.getElementById('passwordEmail').value = data.student.email;
+                        bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
+                        const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+                        passwordModal.show();
+                    } else {
+                        alert('Student account not found. Please make sure you are registered in a class by your professor.');
+                    }
+                } else {
+                    alert(data.error || 'Student not found. Please make sure you are registered in a class by your professor.');
+                }
+            } catch (error) {
+                console.error('Error finding student:', error);
+                alert('Error connecting to server. Please check your connection and try again.');
+            }
+        }
+        
+        function showPasswordModal(student) {
+            document.getElementById('passwordEmail').value = student.email;
+            const modal = new bootstrap.Modal(document.getElementById('passwordModal'));
+            modal.show();
+        }
+        
+        async function setPassword() {
+            const password = document.getElementById('passwordInput').value;
+            const confirmPassword = document.getElementById('passwordConfirmInput').value;
+            
+            if (!password || !confirmPassword) {
+                alert('Please enter both password fields');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+            
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters long');
+                return;
+            }
+            
+            const response = await fetch('/api/student/set_password', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 credentials: 'include',
                 body: JSON.stringify({
-                    rfid_card_id: rfidInput,
-                    student_number: rfidInput
+                    password: password,
+                    confirm_password: confirmPassword
                 })
             });
             
             const data = await response.json();
             if (data.success) {
-                currentStudent = data.student;
-                showClassSelection();
+                bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
+                // After setting password, proceed to class selection
+                // Use student data from the response
+                if (data.student) {
+                    currentStudent = data.student;
+                    showClassSelection();
+                } else {
+                    // Fallback: try to get student info from session
+                    try {
+                        const studentInfoResponse = await fetch('/api/student/current', {
+                            credentials: 'include'
+                        });
+                        if (studentInfoResponse.ok) {
+                            const studentInfo = await studentInfoResponse.json();
+                            if (studentInfo.success && studentInfo.student) {
+                                currentStudent = studentInfo.student;
+                                showClassSelection();
+                            } else {
+                                alert('Password set successfully! Please login again.');
+                                location.reload();
+                            }
+                        } else {
+                            alert('Password set successfully! Please login again.');
+                            location.reload();
+                        }
+                    } catch (error) {
+                        console.error('Error loading student:', error);
+                        alert('Password set successfully! Please login again.');
+                        location.reload();
+                    }
+                }
             } else {
-                alert(data.error || 'Login failed');
+                alert(data.error || 'Failed to set password');
             }
         }
         
         async function showClassSelection() {
-            const response = await fetch('/api/student/classes', {
-                credentials: 'include'
-            });
-            const classes = await response.json();
-            
-            if (classes.length === 0) {
-                alert('No active classes available');
-                return;
+            try {
+                const response = await fetch('/api/student/classes', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const classes = await response.json();
+                
+                if (!Array.isArray(classes)) {
+                    console.error('Invalid response format:', classes);
+                    alert('Error loading classes. Please try again.');
+                    return;
+                }
+                
+                if (classes.length === 0) {
+                    alert('No active classes available');
+                    return;
+                }
+                
+                const classListDiv = document.getElementById('classList');
+                if (!classListDiv) {
+                    console.error('Class list div not found');
+                    alert('Error loading class selection. Please refresh the page.');
+                    return;
+                }
+                
+                classListDiv.innerHTML = classes.map(c => `
+                    <button class="btn btn-primary w-100 mb-2" onclick="joinClass(${c.id})">
+                        ${c.name} (${c.class_code})
+                    </button>
+                `).join('');
+                
+                const modal = new bootstrap.Modal(document.getElementById('classSelectModal'));
+                modal.show();
+            } catch (error) {
+                console.error('Error loading classes:', error);
+                alert('Error loading classes. Please try again.');
             }
-            
-            const classListDiv = document.getElementById('classList');
-            classListDiv.innerHTML = classes.map(c => `
-                <button class="btn btn-primary w-100 mb-2" onclick="joinClass(${c.id})">
-                    ${c.name} (${c.class_code})
-                </button>
-            `).join('');
-            
-            const modal = new bootstrap.Modal(document.getElementById('classSelectModal'));
-            modal.show();
         }
         
         async function joinClass(classId) {
@@ -394,6 +691,7 @@
             
             updateStudentName();
             loadClassInfo();
+            checkInteractionStates();
         }
         
         function updateStudentName() {
@@ -408,6 +706,13 @@
             document.getElementById('classIdDisplay').textContent = `Class ID: ${currentClassId}`;
         }
         
+        // Track interaction states
+        let interactionStates = {
+            hand_raise: false,
+            thumbs_up: false,
+            thumbs_down: false
+        };
+        
         async function sendInteraction(type) {
             if (!currentClassId) {
                 console.error('No class ID - cannot send interaction');
@@ -416,19 +721,22 @@
             }
             
             try {
-            const response = await fetch('/api/student/interaction', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                credentials: 'include',
-                body: JSON.stringify({
-                    class_id: currentClassId,
-                    type: type
-                })
-            });
+                const response = await fetch('/api/student/interaction', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        class_id: currentClassId,
+                        type: type
+                    })
+                });
                 
                 const data = await response.json();
                 if (data.success) {
-                    console.log('Interaction sent:', type);
+                    // Update interaction state
+                    interactionStates[type] = data.is_active || false;
+                    updateInteractionButton(type, interactionStates[type]);
+                    console.log('Interaction toggled:', type, 'Active:', interactionStates[type]);
                 } else {
                     console.error('Interaction failed:', data.error);
                     alert(data.error || 'Failed to send interaction');
@@ -436,6 +744,57 @@
             } catch (error) {
                 console.error('Error sending interaction:', error);
                 alert('Error sending interaction. Please check console.');
+            }
+        }
+        
+        function updateInteractionButton(type, isActive) {
+            let btnId = '';
+            if (type === 'hand_raise') {
+                btnId = 'handRaiseBtn';
+            } else if (type === 'thumbs_up') {
+                btnId = 'thumbsUpBtn';
+            } else if (type === 'thumbs_down') {
+                btnId = 'thumbsDownBtn';
+            }
+            
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                if (isActive) {
+                    btn.classList.add('active');
+                    btn.style.backgroundColor = 'rgba(40, 167, 69, 0.8)';
+                    btn.style.color = 'white';
+                } else {
+                    btn.classList.remove('active');
+                    btn.style.backgroundColor = '';
+                    btn.style.color = '';
+                }
+            }
+        }
+        
+        // Check current interaction states when joining class
+        async function checkInteractionStates() {
+            if (!currentClassId) return;
+            
+            try {
+                // For hand raises, check if student has active hand raise
+                const response = await fetch(`/api/student/interaction_state/${currentClassId}`, {
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        interactionStates = {
+                            hand_raise: data.hand_raise_active || false,
+                            thumbs_up: data.thumbs_up_active || false,
+                            thumbs_down: data.thumbs_down_active || false
+                        };
+                        updateInteractionButton('hand_raise', interactionStates.hand_raise);
+                        updateInteractionButton('thumbs_up', interactionStates.thumbs_up);
+                        updateInteractionButton('thumbs_down', interactionStates.thumbs_down);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking interaction states:', error);
             }
         }
         
@@ -462,33 +821,6 @@
             }
         }
         
-        function showRegister() {
-            const modal = new bootstrap.Modal(document.getElementById('registerModal'));
-            modal.show();
-        }
-        
-        async function registerStudent() {
-            const response = await fetch('/api/student/register', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                credentials: 'include',
-                body: JSON.stringify({
-                    student_number: document.getElementById('regStudentNumber').value,
-                    first_name: document.getElementById('regFirstName').value,
-                    last_name: document.getElementById('regLastName').value,
-                    rfid_card_id: document.getElementById('regRfid').value || null
-                })
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                currentStudent = data.student;
-                bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
-                showClassSelection();
-            } else {
-                alert(data.error || 'Registration failed');
-            }
-        }
         
         // Socket events
         socket.on('settings_updated', (data) => {

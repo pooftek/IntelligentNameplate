@@ -422,6 +422,9 @@
                 <button class="btn btn-download" onclick="exportCurrentList()">
                     <i class="bi bi-file-earmark-spreadsheet"></i> Export Current Class List
                 </button>
+                <button class="btn btn-download" onclick="showAddStudentModal()">
+                    <i class="bi bi-person-plus"></i> Add Student
+                </button>
             </div>
             <div class="upload-dropzone" id="uploadDropzone" onclick="document.getElementById('fileInput').click()">
                 <div class="upload-icon">
@@ -532,6 +535,52 @@
         </div>
     </div>
 </div>
+<!-- Add Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addStudentForm">
+                    <div class="mb-3">
+                        <label for="addFirstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="addFirstName" name="first_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addLastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="addLastName" name="last_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addPreferredName" class="form-label">Preferred Name</label>
+                        <input type="text" class="form-control" id="addPreferredName" name="preferred_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="addStudentNumber" class="form-label">Student Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="addStudentNumber" name="student_number" pattern="[0-9]{9}" maxlength="9" minlength="9" required inputmode="numeric">
+                        <small class="form-text text-muted">Must be exactly 9 digits (numbers only)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addEmail" class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="addEmail" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addRfidCardId" class="form-label">RFID Card ID</label>
+                        <input type="text" class="form-control" id="addRfidCardId" name="rfid_card_id" placeholder="Optional">
+                        <small class="form-text text-muted">Leave blank if student doesn't have an RFID card yet</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveNewStudent()">Add Student</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Student Modal -->
 <div class="modal fade" id="editStudentModal" tabindex="-1">
     <div class="modal-dialog">
@@ -579,6 +628,84 @@
 {% block extra_js %}
 <script>
 const classId = {{ class_obj.id }};
+
+// Show add student modal
+function showAddStudentModal() {
+    // Clear form
+    document.getElementById('addStudentForm').reset();
+    const modal = new bootstrap.Modal(document.getElementById('addStudentModal'));
+    modal.show();
+}
+
+// Save new student
+async function saveNewStudent() {
+    const firstName = document.getElementById('addFirstName').value.trim();
+    const lastName = document.getElementById('addLastName').value.trim();
+    const preferredName = document.getElementById('addPreferredName').value.trim();
+    const studentNumber = document.getElementById('addStudentNumber').value.trim();
+    const email = document.getElementById('addEmail').value.trim();
+    const rfidCardId = document.getElementById('addRfidCardId').value.trim();
+    
+    // Validate required fields
+    if (!firstName || !lastName || !studentNumber || !email) {
+        alert('First name, last name, student number, and email are required');
+        return;
+    }
+    
+    // Validate student number - must be exactly 9 digits
+    if (!/^\d+$/.test(studentNumber)) {
+        alert('Student number must contain only digits');
+        return;
+    }
+    
+    if (studentNumber.length !== 9) {
+        alert(`Student number must be exactly 9 digits. You entered ${studentNumber.length} digit(s).`);
+        return;
+    }
+    
+    // Validate email
+    if (!email || !email.includes('@')) {
+        alert('Please enter a valid email address');
+        return;
+    }
+    
+    const formData = {
+        first_name: firstName,
+        last_name: lastName,
+        preferred_name: preferredName || null,
+        student_number: studentNumber,
+        email: email,
+        rfid_card_id: rfidCardId || null
+    };
+    
+    try {
+        const response = await fetch(`/api/create_and_add_student/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentModal'));
+            modal.hide();
+            
+            // Show success message
+            showStatus('success', `Student "${formData.first_name} ${formData.last_name}" has been added successfully!`);
+            
+            // Reload page after a short delay to show updated data
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            alert('Error adding student: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error adding student:', error);
+        alert('Error adding student. Please try again.');
+    }
+}
 
 // Download template
 function downloadTemplate() {

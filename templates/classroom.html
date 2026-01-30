@@ -185,6 +185,15 @@
         border-radius: 0.375rem;
     }
     
+    /* Live Class styling */
+    #startClassCard.live-class .option-icon i {
+        color: #28a745 !important;
+        background: none !important;
+        -webkit-background-clip: unset !important;
+        -webkit-text-fill-color: unset !important;
+        background-clip: unset !important;
+    }
+    
 </style>
 {% endblock %}
 
@@ -208,11 +217,11 @@
             <h5>Students</h5>
         </div>
         
-        <div class="option-card" onclick="handleStartClass()">
+        <div class="option-card {% if class_obj.is_active %}live-class{% endif %}" onclick="handleStartClass()" id="startClassCard">
             <div class="option-icon">
                 <i class="bi bi-play-circle-fill"></i>
             </div>
-            <h5>Start Class</h5>
+            <h5 id="startClassText">{% if class_obj.is_active %}Live Class{% else %}Start Class{% endif %}</h5>
         </div>
         
         <div class="option-card" onclick="window.location.href='/classroom/{{ class_obj.id }}/class_data'">
@@ -366,9 +375,8 @@ window.addEventListener('resize', adjustClassTitleFontSize);
 
 async function handleStartClass() {
     {% if class_obj.is_active %}
-        if (confirm('Class is already active. Do you want to stop it?')) {
-            await stopClass();
-        }
+        // Class is already active - rejoin the live class
+        window.location.href = '/faculty_dashboard/{{ class_obj.id }}';
     {% else %}
         await startClass();
     {% endif %}

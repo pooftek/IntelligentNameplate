@@ -1,143 +1,565 @@
 {% extends "base.html" %}
 
-{% block title %}Faculty Dashboard - {{ class_obj.name }}{% endblock %}
+{% block title %}Live Class Dashboard - {{ class_obj.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
+    body {
+        zoom: 1.25;
+        height: 100vh;
+        overflow: hidden;
+        margin: 0;
+        background: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
+    }
+    
+    .dashboard-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .dashboard-header {
+        flex-shrink: 0;
+        padding: 1.5rem 2rem;
+        background: transparent;
+    }
+    
+    .dashboard-header-title-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+    
     .responsive-title {
         font-size: clamp(2rem, 6vw, 4rem);
         font-weight: bold;
-    }
-    
-    .stat-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        border-radius: 15px;
-        padding: clamp(15px, 3vw, 25px);
-        margin-bottom: clamp(15px, 3vw, 25px);
+        margin: 0;
     }
     
-    .stat-card > div:not(.stat-number) {
-        font-size: clamp(0.875rem, 2vw, 1rem);
+    .header-buttons {
+        display: flex;
+        gap: 1rem;
     }
-    .stat-number {
-        font-size: clamp(1.75rem, 4vw, 2.5rem);
-        font-weight: bold;
+    
+    .dashboard-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+        padding: 1.5rem 2rem;
     }
-    .card-header h5 {
-        font-size: clamp(1.1rem, 2.5vw, 1.25rem);
-    }
-    .card-body h6 {
-        font-size: clamp(1rem, 2vw, 1.1rem);
-    }
-    .poll-option {
-        padding: clamp(12px, 2vw, 18px);
-        margin: clamp(8px, 1.5vw, 12px) 0;
-        border-radius: 10px;
-        background: #f8f9fa;
-        cursor: pointer;
-        font-size: clamp(0.875rem, 2vw, 1rem);
-    }
-    .poll-option:hover {
-        background: #e9ecef;
-    }
-    .live-indicator {
+    
+    .dashboard-content::-webkit-scrollbar {
         width: 12px;
-        height: 12px;
-        background: #28a745;
-        border-radius: 50%;
-        display: inline-block;
-        animation: pulse 2s infinite;
     }
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+    
+    .dashboard-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .dashboard-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+    }
+    
+    .dashboard-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
+    }
+    
+    /* Light grey background container */
+    .card-base {
+        background-color: #e5e7eb; /* Lighter grey base for brighter look */
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Tab navigation - positioned above white card */
+    .tab-nav {
+        display: flex;
+        gap: 0;
+        margin-bottom: 0;
+        position: relative;
+        z-index: 10;
+    }
+    
+    .tab-bubble {
+        background: transparent; /* Remove unselected tab background */
+        color: #6c757d;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-bottom: 3px solid transparent;
+        font-weight: 600;
+        font-size: 1.4rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+    }
+    
+    .tab-bubble:hover {
+        background: transparent;
+        color: #495057;
+    }
+    
+    .tab-bubble.active {
+        background: #ffffff; /* White background matching unified card */
+        color: #2d2d2d;
+        border-bottom: none;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .tab-bubble.active:first-child {
+        border-radius: 12px 12px 0 0; /* Rounded top corners, sharp bottom corners */
+    }
+    
+    .tab-bubble.active:not(:first-child) {
+        border-radius: 12px 12px 0 0; /* Rounded top corners, sharp bottom corners */
+    }
+    
+    /* White card container for tab content - unified with tab (Google Chrome style) */
+    .tab-content-card {
+        background-color: #ffffff; /* Unified white background */
+        padding: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        margin-top: -1px; /* Connect seamlessly with active tab */
+        position: relative;
+        border-radius: 0 12px 12px 0; /* Straight left side, rounded right and bottom corners */
+    }
+    
+    /* When first tab is active, keep left side straight */
+    .tab-content-card.first-tab-active {
+        border-radius: 0 12px 12px 0; /* Straight left side, rounded right and bottom corners */
+    }
+    
+    /* When attendance tab is active, fillet top-left corner */
+    .tab-content-card.other-tab-active {
+        border-radius: 12px 12px 12px 0; /* Filleted top-left, rounded right and bottom corners */
+    }
+    
+    /* Ensure tab content is above the pseudo-element */
+    .tab-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .tab-content-card::-webkit-scrollbar {
+        width: 12px;
+    }
+    
+    .tab-content-card::-webkit-scrollbar-track {
+        background: #f8f9fa;
+        border-radius: 6px;
+    }
+    
+    .tab-content-card::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 6px;
+    }
+    
+    .tab-content-card::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+    
+    /* White metric cards - now with light background since parent is white */
+    .metrics-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Dashboard layout: Grid with Live Metrics top-left, Poll Statistics bottom-left, Hands Raised full height right */
+    .dashboard-layout {
+        display: grid;
+        grid-template-columns: 3fr 1fr;
+        grid-template-rows: auto 1fr;
+        gap: 1.5rem;
+        height: 100%;
+    }
+    
+    .top-section {
+        display: contents;
+    }
+    
+    /* Hands Raised Card - skinny long rectangle, spans full height */
+    .hands-raised-card {
+        background-color: #f8f9fa;
+        border-radius: 15px;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border: 1px solid #d1d5db;
+        display: flex;
+        flex-direction: column;
+        grid-row: 1 / -1;
+        grid-column: 2;
+        min-height: 0;
+    }
+    
+    .hands-raised-card h6 {
+        color: #2d2d2d;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        font-size: 1.25rem;
+    }
+    
+    .metric-card {
+        background-color: #f8f9fa;
+        border-radius: 15px;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border: 1px solid #d1d5db;
+        display: flex;
+        flex-direction: column;
+        grid-row: 1;
+        grid-column: 1;
+    }
+    
+    .metric-card h6 {
+        color: #2d2d2d;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        font-size: 1.25rem;
+    }
+    
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #2d2d2d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .metric-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    /* Live Metrics Horizontal Line - shrunk to allow space for Hands Raised */
+    .live-metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 0.75rem;
+    }
+    
+    .live-metric-item {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+        border-radius: 15px;
+    }
+    
+    .live-metric-item.attendance,
+    .live-metric-item.unique-participation {
+        background-color: #f8f9fa;
+        border: none;
+    }
+    
+    .live-metric-item.thumbs-up {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .live-metric-item.thumbs-down {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .live-metric-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .live-metric-label {
+        font-size: 1.125rem;
+        font-weight: 500;
+    }
+    
+    .live-metric-item.attendance .live-metric-value,
+    .live-metric-item.unique-participation .live-metric-value {
+        color: #2d2d2d;
+    }
+    
+    .live-metric-item.attendance .live-metric-label,
+    .live-metric-item.unique-participation .live-metric-label {
+        color: #6c757d;
+    }
+    
+    .live-metric-item.thumbs-up .live-metric-value,
+    .live-metric-item.thumbs-down .live-metric-value,
+    .live-metric-item.thumbs-up .live-metric-label,
+    .live-metric-item.thumbs-down .live-metric-label {
+        color: white;
+    }
+    
+    .hands-raised-list {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 100px;
+        max-height: 100%;
+    }
+    
+    .hands-raised-list::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .hands-raised-list::-webkit-scrollbar-track {
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+    
+    .hands-raised-list::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+    
+    .hands-raised-list::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+    
+    .hands-raised-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        background-color: white;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+    }
+    
+    .hands-raised-item .hand-icon {
+        margin-right: 0.75rem;
+        color: #6c757d;
+        font-size: 1.2rem;
+    }
+    
+    .hands-raised-item .student-name {
+        flex: 1;
+        color: #2d2d2d;
+        font-weight: 500;
+    }
+    
+    .hands-raised-item .student-number {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    /* Poll card - smaller horizontally at bottom left */
+    .poll-card {
+        background-color: #f8f9fa;
+        border-radius: 15px;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border: 1px solid #d1d5db;
+        display: flex;
+        flex-direction: column;
+        grid-column: 1;
+        grid-row: 2;
+        min-height: 0;
+        max-height: 100%;
+        overflow-y: auto;
+    }
+    
+    .poll-card::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .poll-card::-webkit-scrollbar-track {
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+    
+    .poll-card::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+    
+    .poll-card::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+    
+    .poll-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .poll-card h6 {
+        color: #2d2d2d;
+        font-weight: 600;
+        margin: 0;
+        font-size: 1.25rem;
+    }
+    
+    .poll-controls {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .poll-header-button {
+        margin: 0;
+    }
+    
+    .poll-controls select {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .btn-start-poll {
+        background: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
+        border: none;
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.375rem 1rem;
+        border-radius: 8px;
+    }
+    
+    .btn-start-poll:hover {
+        background: linear-gradient(135deg, #4B2F66 0%, #6600CC 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    .poll-header-button.btn-danger {
+        font-size: 0.875rem;
+        padding: 0.375rem 1rem;
+    }
+    
+    .poll-results-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-top: 1rem;
+    }
+    
+    .poll-table {
+        width: 100%;
+    }
+    
+    .poll-table th {
+        background-color: #d1d5db;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        color: #2d2d2d;
+        border-bottom: 2px solid #c4c9d0;
+    }
+    
+    .poll-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .poll-option-a { color: #dc3545; }
+    .poll-option-b { color: #28a745; }
+    .poll-option-c { color: #ffc107; }
+    .poll-option-d { color: #007bff; }
+    
+    .poll-chart-container {
+        height: 250px;
+        position: relative;
+    }
+    
+    .vote-percentage-box {
+        background-color: #d1d5db;
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        margin-top: 1rem;
+    }
+    
+    .vote-percentage-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .vote-percentage-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #2d2d2d;
+    }
+    
+    .clear-data-btn {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 0.5rem 1.5rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+        cursor: pointer;
+    }
+    
+    .clear-data-btn:hover {
+        background-color: #5a6268;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+        font-style: italic;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="text-white responsive-title">{{ class_obj.name }} <span class="live-indicator"></span> LIVE</h1>
-            <p class="text-white-50" style="font-size: clamp(0.875rem, 2vw, 1rem);">Class Code: {{ class_obj.class_code }}</p>
-        </div>
-        <div>
-            <a href="/classroom/{{ class_obj.id }}" class="btn btn-light me-2">Back to Classroom</a>
-            <button class="btn btn-danger" onclick="stopClass()">Stop Class</button>
-        </div>
-    </div>
-    
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-number" id="totalStudents">{{ students|length }}</div>
-                <div>Total Students</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-number" id="presentStudents">0</div>
-                <div>Present</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-number" id="handRaises">0</div>
-                <div>Hand Raises</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-number" id="thumbsUp">0</div>
-                <div>Thumbs Up</div>
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="dashboard-header-title-container">
+            <h1 class="responsive-title">Live Class Dashboard</h1>
+            <div class="header-buttons">
+                <a href="/classroom/{{ class_obj.id }}" class="btn btn-outline-light">Return</a>
+                <button class="btn btn-danger" onclick="stopClass()">End Class</button>
             </div>
         </div>
     </div>
     
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5>Poll/Quiz</h5>
-                </div>
-                <div class="card-body">
-                    <div id="pollArea">
-                        {% if active_poll %}
-                        <div id="activePoll">
-                            <h6>{{ active_poll.question }}</h6>
-                            <div id="pollResults"></div>
-                            <button class="btn btn-danger mt-3" onclick="stopPoll({{ active_poll.id }})">Stop Poll</button>
-                        </div>
-                        {% else %}
-                        <button class="btn btn-primary" onclick="showCreatePollModal()">Create Poll/Quiz</button>
-                        {% endif %}
-                    </div>
-                </div>
+    <div class="dashboard-content">
+        <div class="card-base">
+            <!-- Tab Navigation -->
+            <div class="tab-nav">
+                <button class="tab-bubble active" onclick="showTab('dashboard')">Dashboard</button>
+                <button class="tab-bubble" onclick="showTab('attendance')">Attendance</button>
             </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Live Preferences</h5>
+            
+            <!-- White Card Container for Tab Content -->
+            <div class="tab-content-card">
+                <!-- Dashboard Tab Content -->
+                <div id="dashboardTab" class="tab-content">
+                    <div id="dashboardContent">
+                        <div class="loading">Loading dashboard...</div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="liveShowFirstNameOnly">
-                        <label class="form-check-label" for="liveShowFirstNameOnly">Show First Name Only</label>
+                
+                <!-- Attendance Tab Content -->
+                <div id="attendanceTab" class="tab-content" style="display: none;">
+                    <div id="attendanceContent">
+                        <div class="loading">Loading attendance...</div>
                     </div>
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="liveQuietMode">
-                        <label class="form-check-label" for="liveQuietMode">Quiet Mode</label>
-                    </div>
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="liveExcludeFromGrading">
-                        <label class="form-check-label" for="liveExcludeFromGrading">Exclude This Session From Grading</label>
-                        <small class="form-text text-muted d-block">If enabled, this session won't count toward attendance grades and peer grading will be disabled.</small>
-                    </div>
-                    <button class="btn btn-primary" onclick="updateLiveSettings()">Update Settings</button>
                 </div>
             </div>
         </div>
@@ -146,7 +568,7 @@
 
 <!-- Create Poll Modal -->
 <div class="modal fade" id="createPollModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Create Poll/Quiz</h5>
@@ -159,26 +581,34 @@
                         <input type="text" class="form-control" id="pollQuestion" required>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Number of Options</label>
+                        <select class="form-control mb-2" id="numOptions" onchange="updatePollOptions()">
+                            <option value="2">2 Options</option>
+                            <option value="3">3 Options</option>
+                            <option value="4" selected>4 Options</option>
+                            <option value="5">5 Options</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="pollOptionsContainer">
                         <label class="form-label">Options</label>
-                        <input type="text" class="form-control mb-2" id="option1" placeholder="Option 1" required>
-                        <input type="text" class="form-control mb-2" id="option2" placeholder="Option 2" required>
-                        <input type="text" class="form-control mb-2" id="option3" placeholder="Option 3 (optional)">
-                        <input type="text" class="form-control mb-2" id="option4" placeholder="Option 4 (optional)">
+                        <input type="text" class="form-control mb-2" id="option1" placeholder="Option A" required>
+                        <input type="text" class="form-control mb-2" id="option2" placeholder="Option B" required>
+                        <input type="text" class="form-control mb-2" id="option3" placeholder="Option C" required>
+                        <input type="text" class="form-control mb-2" id="option4" placeholder="Option D" required>
                     </div>
                     <div class="mb-3">
                         <label for="correctAnswer" class="form-label">Correct Answer (optional, for quiz)</label>
                         <select class="form-control" id="correctAnswer">
                             <option value="">No correct answer</option>
-                            <option value="0">Option 1</option>
-                            <option value="1">Option 2</option>
-                            <option value="2">Option 3</option>
-                            <option value="3">Option 4</option>
+                            <option value="0">Option A</option>
+                            <option value="1">Option B</option>
+                            <option value="2">Option C</option>
+                            <option value="3">Option D</option>
                         </select>
                     </div>
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="isGraded">
                         <label class="form-check-label" for="isGraded">Graded (Counts toward student grades)</label>
-                        <small class="form-text text-muted d-block">If unchecked, this poll won't affect student poll grades.</small>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="isAnonymous">
@@ -195,93 +625,384 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
 const socket = io();
 const classId = {{ class_obj.id }};
+let pollChart = null;
 
 socket.on('connect', () => {
     socket.emit('join_class', {class_id: classId});
-    updateStats();
-    setInterval(updateStats, 3000);
+    // Initialize tab shape class
+    const tabContentCard = document.querySelector('.tab-content-card');
+    const firstTab = document.querySelector('.tab-nav .tab-bubble:first-child');
+    if (firstTab && firstTab.classList.contains('active')) {
+        tabContentCard.classList.add('first-tab-active');
+    }
+    loadDashboard();
+    setInterval(loadDashboard, 2000);
 });
 
 socket.on('student_joined', () => {
-    updateStats();
+    loadDashboard();
+    loadAttendance();
 });
 
 socket.on('student_interaction', () => {
-    updateStats();
+    loadDashboard();
 });
 
 socket.on('poll_started', (data) => {
-    location.reload();
+    loadDashboard();
 });
 
 socket.on('poll_stopped', () => {
-    location.reload();
+    loadDashboard();
 });
 
 socket.on('poll_response', (data) => {
-    updateStats();
+    loadDashboard();
 });
 
-async function updateStats() {
-    socket.emit('get_live_stats', {class_id: classId});
-}
-
-socket.on('live_stats', (data) => {
-    document.getElementById('presentStudents').textContent = data.present_students;
-    document.getElementById('handRaises').textContent = data.total_hand_raises;
-    document.getElementById('thumbsUp').textContent = data.total_thumbs_up;
+// Tab switching
+function showTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-bubble').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
     
-    if (data.poll_stats) {
-        updatePollResults(data.poll_stats);
+    // Update white card classes for unified shape
+    const tabContentCard = document.querySelector('.tab-content-card');
+    tabContentCard.classList.remove('first-tab-active', 'other-tab-active');
+    
+    // Check if first tab is active
+    const firstTab = document.querySelector('.tab-nav .tab-bubble:first-child');
+    if (firstTab.classList.contains('active')) {
+        tabContentCard.classList.add('first-tab-active');
+    } else {
+        tabContentCard.classList.add('other-tab-active');
     }
-});
-
-function updatePollResults(pollStats) {
-    const resultsDiv = document.getElementById('pollResults');
-    if (!resultsDiv) return;
     
-    let html = '<div class="mt-3">';
-    pollStats.options.forEach((option, index) => {
-        const count = pollStats.option_counts[index] || 0;
-        const percentage = pollStats.total_responses > 0 ? (count / pollStats.total_responses * 100) : 0;
-        html += `
-            <div class="mb-2">
-                <div class="d-flex justify-content-between">
-                    <span>${option}</span>
-                    <span>${count} (${percentage.toFixed(1)}%)</span>
-                </div>
-                <div class="progress" style="height: 20px;">
-                    <div class="progress-bar" role="progressbar" style="width: ${percentage}%"></div>
-                </div>
-            </div>
-        `;
-    });
-    html += `<p class="mt-2">Total Responses: ${pollStats.total_responses}</p></div>`;
-    resultsDiv.innerHTML = html;
+    // Show/hide tab content
+    document.getElementById('dashboardTab').style.display = tabName === 'dashboard' ? 'block' : 'none';
+    document.getElementById('attendanceTab').style.display = tabName === 'attendance' ? 'block' : 'none';
+    
+    if (tabName === 'attendance') {
+        loadAttendance();
+    }
 }
 
-function showCreatePollModal() {
-    const modal = new bootstrap.Modal(document.getElementById('createPollModal'));
-    modal.show();
+// Load Dashboard
+async function loadDashboard() {
+    try {
+        const response = await fetch(`/api/live_dashboard/${classId}`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            document.getElementById('dashboardContent').innerHTML = '<div class="text-danger">Error loading dashboard</div>';
+            return;
+        }
+        
+        let html = '<div class="dashboard-layout">';
+        
+        // Live Metrics Card - Horizontal Line (top-left, grid position 1,1)
+        html += '<div class="metric-card">';
+        html += '<h6>Live Metrics</h6>';
+        html += '<div class="live-metrics-grid">';
+        
+        // Attendance %
+        const attendancePercent = data.total_students > 0 
+            ? Math.round((data.present_students || 0) / data.total_students * 100) 
+            : 0;
+        html += '<div class="live-metric-item attendance">';
+        html += `<div class="live-metric-value">${attendancePercent}%</div>`;
+        html += '<div class="live-metric-label">Attendance</div>';
+        html += '</div>';
+        
+        // Unique Participation
+        html += '<div class="live-metric-item unique-participation">';
+        html += `<div class="live-metric-value">${data.unique_participants || 0}</div>`;
+        html += '<div class="live-metric-label">Unique Participation</div>';
+        html += '</div>';
+        
+        // Thumbs Up (Green)
+        html += '<div class="live-metric-item thumbs-up">';
+        html += `<div class="live-metric-value">${data.thumbs_up_count || 0}</div>`;
+        html += '<div class="live-metric-label">Thumbs Up</div>';
+        html += '</div>';
+        
+        // Thumbs Down (Red)
+        html += '<div class="live-metric-item thumbs-down">';
+        html += `<div class="live-metric-value">${data.thumbs_down_count || 0}</div>`;
+        html += '<div class="live-metric-label">Thumbs Down</div>';
+        html += '</div>';
+        
+        html += '</div>'; // End live-metrics-grid
+        html += '</div>'; // End metric-card
+        
+        // Poll Card (bottom-left, grid position 2,1)
+        html += '<div class="poll-card">';
+        html += '<div class="poll-card-header">';
+        html += '<h6>Poll Statistics</h6>';
+        
+        if (data.active_poll) {
+            html += `<button class="btn btn-danger btn-sm poll-header-button" onclick="stopPoll(${data.active_poll.poll_id})">Stop Poll</button>`;
+        } else {
+            html += '<button class="btn btn-start-poll poll-header-button" onclick="showCreatePollModal()">Start Poll</button>';
+        }
+        
+        html += '</div>'; // End poll-card-header
+        
+        if (data.active_poll) {
+            html += '<div class="poll-controls">';
+            html += '<select id="numAnswers" disabled>';
+            html += `<option>${data.active_poll.options.length} Answers</option>`;
+            html += '</select>';
+            html += '</div>';
+        }
+        
+        if (data.active_poll) {
+            html += '<div id="pollResultsContainer"></div>';
+        } else {
+            html += '<div class="empty-state">No active poll. Click "Start Poll" to create one.</div>';
+        }
+        
+        html += '</div>'; // End poll-card
+        
+        // Hands Raised Card (right, spans both rows, grid position 1-2,2)
+        html += '<div class="hands-raised-card">';
+        html += '<h6>Hands Raised</h6>';
+        html += '<div class="hands-raised-list">';
+        if (data.hands_raised && data.hands_raised.length > 0) {
+            data.hands_raised.forEach((item, index) => {
+                const studentName = data.show_first_name_only && item.preferred_name 
+                    ? item.preferred_name 
+                    : (data.show_first_name_only ? item.first_name : `${item.preferred_name || item.first_name} ${item.last_name}`);
+                html += `<div class="hands-raised-item">
+                    <span class="hand-icon"><i class="bi bi-hand-index"></i></span>
+                    <span class="student-name">${index + 1}. ${studentName}</span>
+                    <span class="student-number">${item.student_number}</span>
+                </div>`;
+            });
+        } else {
+            html += '<div class="empty-state">No hands raised</div>';
+        }
+        html += '</div>';
+        html += '</div>'; // End hands-raised-card
+        
+        html += '</div>'; // End dashboard-layout
+        
+        document.getElementById('dashboardContent').innerHTML = html;
+        
+        // Load poll results if active
+        if (data.active_poll) {
+            loadPollResults(data.active_poll.poll_id, data.present_students, data.active_poll.options);
+        }
+        
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        document.getElementById('dashboardContent').innerHTML = '<div class="text-danger">Error loading dashboard</div>';
+    }
 }
 
+// Load Poll Results
+async function loadPollResults(pollId, presentStudents, options) {
+    try {
+        const response = await fetch(`/api/poll_results/${pollId}`);
+        const data = await response.json();
+        
+        if (!data.success) return;
+        
+        const container = document.getElementById('pollResultsContainer');
+        if (!container) return;
+        
+        let html = '<div class="poll-results-container">';
+        
+        // Results Table (Left)
+        html += '<div>';
+        html += '<table class="poll-table">';
+        html += '<thead><tr><th>Option</th><th>Responses</th><th>%</th></tr></thead>';
+        html += '<tbody>';
+        
+        const optionColors = ['poll-option-a', 'poll-option-b', 'poll-option-c', 'poll-option-d'];
+        data.options.forEach((option, index) => {
+            const count = data.option_counts[index] || 0;
+            const percentage = data.total_responses > 0 ? (count / data.total_responses * 100) : 0;
+            const colorClass = optionColors[index] || '';
+            html += `<tr>
+                <td class="${colorClass}"><strong>${option}</strong></td>
+                <td>${count}</td>
+                <td>${percentage.toFixed(0)}%</td>
+            </tr>`;
+        });
+        
+        html += '</tbody></table>';
+        html += '</div>';
+        
+        // Chart (Right)
+        html += '<div>';
+        html += '<div class="poll-chart-container"><canvas id="pollChart"></canvas></div>';
+        html += '<div class="vote-percentage-box">';
+        html += '<div class="vote-percentage-label">Vote %</div>';
+        const votePercentage = presentStudents > 0 ? (data.total_responses / presentStudents * 100) : 0;
+        html += `<div class="vote-percentage-value">${Math.min(100, votePercentage.toFixed(0))}%</div>`;
+        html += '</div>';
+        html += '<button class="clear-data-btn" onclick="clearPollData(' + pollId + ')">Clear Data</button>';
+        html += '</div>';
+        
+        html += '</div>';
+        
+        container.innerHTML = html;
+        
+        // Create chart
+        const ctx = document.getElementById('pollChart');
+        if (ctx && pollChart) {
+            pollChart.destroy();
+        }
+        if (ctx) {
+            const chartColors = ['#dc3545', '#28a745', '#ffc107', '#007bff', '#6c757d'];
+            pollChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.options,
+                    datasets: [{
+                        label: 'Responses',
+                        data: data.options.map((_, i) => data.option_counts[i] || 0),
+                        backgroundColor: data.options.map((_, i) => chartColors[i] || '#6c757d'),
+                        borderColor: data.options.map((_, i) => chartColors[i] || '#6c757d'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error loading poll results:', error);
+    }
+}
+
+// Load Attendance
+async function loadAttendance() {
+    try {
+        const response = await fetch(`/api/live_attendance/${classId}`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            document.getElementById('attendanceContent').innerHTML = '<div class="text-danger">Error loading attendance</div>';
+            return;
+        }
+        
+        let html = '<div class="metrics-container">';
+        
+        // Present Students
+        html += '<div class="metric-card">';
+        html += '<h6>Present Students</h6>';
+        html += '<div class="hands-raised-list">';
+        const presentStudents = data.present_students || [];
+        if (presentStudents.length > 0) {
+            presentStudents.forEach(student => {
+                html += `<div class="hands-raised-item">
+                    <span class="student-name">${student.preferred_name || student.first_name} ${student.last_name}</span>
+                    <span class="student-number">${student.student_number}</span>
+                </div>`;
+            });
+        } else {
+            html += '<div class="empty-state">No students present</div>';
+        }
+        html += '</div>';
+        html += '</div>';
+        
+        // Absent Students
+        html += '<div class="metric-card">';
+        html += '<h6>Absent Students</h6>';
+        html += '<div class="hands-raised-list">';
+        const absentStudents = data.absent_students || [];
+        if (absentStudents.length > 0) {
+            absentStudents.forEach(student => {
+                html += `<div class="hands-raised-item">
+                    <span class="student-name">${student.preferred_name || student.first_name} ${student.last_name}</span>
+                    <span class="student-number">${student.student_number}</span>
+                </div>`;
+            });
+        } else {
+            html += '<div class="empty-state">All students are present</div>';
+        }
+        html += '</div>';
+        html += '</div>';
+        
+        html += '</div>';
+        
+        document.getElementById('attendanceContent').innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading attendance:', error);
+        document.getElementById('attendanceContent').innerHTML = '<div class="text-danger">Error loading attendance</div>';
+    }
+}
+
+// Update poll options
+function updatePollOptions() {
+    const numOptions = parseInt(document.getElementById('numOptions').value);
+    const container = document.getElementById('pollOptionsContainer');
+    const correctAnswerSelect = document.getElementById('correctAnswer');
+    
+    container.innerHTML = '<label class="form-label">Options</label>';
+    correctAnswerSelect.innerHTML = '<option value="">No correct answer</option>';
+    
+    const optionLabels = ['A', 'B', 'C', 'D', 'E'];
+    for (let i = 1; i <= numOptions; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control mb-2';
+        input.id = `option${i}`;
+        input.placeholder = `Option ${optionLabels[i-1]}`;
+        if (i <= 2) input.required = true;
+        container.appendChild(input);
+        
+        const option = document.createElement('option');
+        option.value = i - 1;
+        option.textContent = `Option ${optionLabels[i-1]}`;
+        correctAnswerSelect.appendChild(option);
+    }
+}
+
+// Create Poll
 async function createPoll() {
     const question = document.getElementById('pollQuestion').value;
-    const options = [
-        document.getElementById('option1').value,
-        document.getElementById('option2').value
-    ];
-    if (document.getElementById('option3').value) options.push(document.getElementById('option3').value);
-    if (document.getElementById('option4').value) options.push(document.getElementById('option4').value);
+    const numOptions = parseInt(document.getElementById('numOptions').value);
+    const options = [];
+    
+    for (let i = 1; i <= numOptions; i++) {
+        const value = document.getElementById(`option${i}`).value.trim();
+        if (value) options.push(value);
+    }
+    
+    if (options.length < 2) {
+        alert('Please provide at least 2 options');
+        return;
+    }
     
     const correctAnswer = document.getElementById('correctAnswer').value;
     const isGraded = document.getElementById('isGraded').checked;
     const isAnonymous = document.getElementById('isAnonymous').checked;
     
-    const response = await fetch(`/api/create_poll/{{ class_obj.id }}`, {
+    const response = await fetch(`/api/create_poll/${classId}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
@@ -295,46 +1016,45 @@ async function createPoll() {
     
     const data = await response.json();
     if (data.success) {
-        location.reload();
+        bootstrap.Modal.getInstance(document.getElementById('createPollModal')).hide();
+        loadDashboard();
     } else {
         alert(data.error || 'Failed to create poll');
     }
 }
 
+// Stop Poll
 async function stopPoll(pollId) {
     const response = await fetch(`/api/stop_poll/${pollId}`, {method: 'POST'});
     const data = await response.json();
     if (data.success) {
-        location.reload();
+        loadDashboard();
     }
 }
 
+// Clear Poll Data
+async function clearPollData(pollId) {
+    if (!confirm('Are you sure you want to clear all poll data? This cannot be undone.')) return;
+    
+    // This would need a backend endpoint to clear poll responses
+    alert('Clear data functionality would be implemented here');
+}
+
+// Show create poll modal
+function showCreatePollModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createPollModal'));
+    modal.show();
+    updatePollOptions();
+}
+
+// Stop class
 async function stopClass() {
-    if (confirm('Are you sure you want to stop the class?')) {
-        const response = await fetch(`/api/stop_class/{{ class_obj.id }}`, {method: 'POST'});
+    if (confirm('Are you sure you want to end the class?')) {
+        const response = await fetch(`/api/stop_class/${classId}`, {method: 'POST'});
         const data = await response.json();
         if (data.success) {
-            window.location.href = `/classroom/{{ class_obj.id }}`;
+            window.location.href = `/classroom/${classId}`;
         }
-    }
-}
-
-async function updateLiveSettings() {
-    const data = {
-        show_first_name_only: document.getElementById('liveShowFirstNameOnly').checked,
-        quiet_mode: document.getElementById('liveQuietMode').checked,
-        exclude_from_grading: document.getElementById('liveExcludeFromGrading').checked
-    };
-    
-    const response = await fetch(`/api/update_settings/{{ class_obj.id }}`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-    });
-    
-    const result = await response.json();
-    if (result.success) {
-        alert('Settings updated!');
     }
 }
 </script>

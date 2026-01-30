@@ -126,17 +126,17 @@
         border-bottom: 3px solid transparent;
         padding: 1rem 2.5rem;
         font-weight: 600;
-        font-size: 1.25rem;
+        font-size: 1.4rem;
     }
     
     .nav-tabs .nav-link:hover {
-        border-bottom-color: rgba(42, 26, 64, 0.3);
+        border-bottom-color: transparent;
         color: #3B2556;
     }
     
     .nav-tabs .nav-link.active {
         color: #2A1A40;
-        border-bottom-color: #2A1A40;
+        border-bottom-color: transparent;
         background-color: transparent;
     }
     
@@ -161,18 +161,151 @@
         background-color: rgba(59, 37, 86, 0.1);
     }
     
-    .session-card {
+    .session-banner {
         background-color: #f8f9fa;
         border: 1px solid #dee2e6;
         border-radius: 10px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .session-banner-header {
+        padding: 1.25rem 1.5rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #4F2683;
+        transition: background-color 0.2s;
+    }
+    
+    .session-banner-header:hover {
+        background-color: #5F3693;
+    }
+    
+    .session-banner-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: white;
+        margin: 0;
+    }
+    
+    .session-banner-toggle {
+        font-size: 1.5rem;
+        color: white;
+        transition: transform 0.3s;
+    }
+    
+    .session-banner-toggle.expanded {
+        transform: rotate(180deg);
+    }
+    
+    .grey-banner-toggle.expanded {
+        transform: rotate(180deg);
+    }
+    
+    .session-banner-content {
         padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        display: none;
+    }
+    
+    .session-banner-content.expanded {
+        display: block;
     }
     
     .session-header {
         border-bottom: 2px solid #2A1A40;
         padding-bottom: 1rem;
         margin-bottom: 1rem;
+    }
+    
+    .poll-section {
+        margin-top: 1.5rem;
+    }
+    
+    .poll-header {
+        padding: 0.75rem 1rem;
+        background-color: #e9ecef;
+        border-radius: 5px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .poll-header:hover {
+        background-color: #dee2e6;
+    }
+    
+    .poll-title {
+        font-weight: 600;
+        color: #495057;
+        margin: 0;
+    }
+    
+    .poll-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
+    
+    .poll-badge.graded {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .poll-badge.ungraded {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .poll-content {
+        display: none;
+        padding: 1rem;
+        background-color: white;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+    }
+    
+    .poll-content.expanded {
+        display: block;
+    }
+    
+    .attendance-section {
+        margin-top: 1.5rem;
+    }
+    
+    .attendance-header {
+        padding: 0.75rem 1rem;
+        background-color: #e9ecef;
+        border-radius: 5px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .attendance-header:hover {
+        background-color: #dee2e6;
+    }
+    
+    .attendance-title {
+        font-weight: 600;
+        color: #495057;
+        margin: 0;
+    }
+    
+    .attendance-content {
+        display: none;
+    }
+    
+    .attendance-content.expanded {
+        display: block;
     }
     
     .metrics-grid {
@@ -225,6 +358,37 @@
     
     .attendance-table {
         margin-top: 1rem;
+    }
+    
+    .attendance-table th:first-child,
+    .attendance-table td:first-child {
+        text-align: center;
+    }
+    
+    .attendance-table th:nth-child(2),
+    .attendance-table td:nth-child(2) {
+        text-align: left;
+    }
+    
+    .attendance-table th:nth-child(3),
+    .attendance-table td:nth-child(3) {
+        text-align: left;
+    }
+    
+    .attendance-table th:nth-child(4),
+    .attendance-table td:nth-child(4) {
+        text-align: center;
+    }
+    
+    .attendance-table th:nth-child(5),
+    .attendance-table td:nth-child(5) {
+        text-align: center;
+    }
+    
+    .grey-banner-toggle {
+        font-size: 1.5rem;
+        color: #4F2683;
+        transition: transform 0.3s;
     }
     
     .loading {
@@ -485,46 +649,76 @@ async function loadMetrics() {
             return;
         }
         
+        // Get class name from template
+        const className = {{ class_obj.name|tojson }};
+        
         let html = '';
         
         data.forEach(session => {
             const startTime = new Date(session.start_time);
             const endTime = session.end_time ? new Date(session.end_time) : null;
+            const sessionDate = startTime.toLocaleDateString();
+            const sessionNumber = session.session_number || 1;
+            
+            const sessionId = `session-${session.session_id}`;
+            const pollSectionId = `polls-${session.session_id}`;
+            const attendanceSectionId = `attendance-${session.session_id}`;
             
             html += `
-                <div class="session-card">
-                    <div class="session-header">
-                        <h5>Class Session - ${startTime.toLocaleString()}</h5>
-                        <div class="text-muted">
-                            <strong>Start:</strong> ${startTime.toLocaleString()}<br>
-                            <strong>End:</strong> ${endTime ? endTime.toLocaleString() : 'In Progress'}
-                        </div>
+                <div class="session-banner">
+                    <div class="session-banner-header" onclick="toggleSession('${sessionId}')">
+                        <h5 class="session-banner-title">${className}: Session #${sessionNumber}, ${sessionDate}</h5>
+                        <span class="session-banner-toggle" id="toggle-${sessionId}">▼</span>
                     </div>
-                    
-                    <h6 class="mb-3">Engagement Metrics</h6>
-                    <div class="metrics-grid">
-                        <div class="metric-card">
-                            <div class="metric-label">Hands Raised</div>
-                            <div class="metric-value">${session.engagement_metrics.hands_raised}</div>
+                    <div class="session-banner-content" id="${sessionId}">
+                        <div class="session-header">
+                            <div class="text-muted">
+                                <strong>Start:</strong> ${startTime.toLocaleString()}<br>
+                                <strong>End:</strong> ${endTime ? endTime.toLocaleString() : 'In Progress'}
+                            </div>
                         </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Thumbs Up</div>
-                            <div class="metric-value">${session.engagement_metrics.thumbs_up}</div>
+                        
+                        <h6 class="mb-3">Engagement Metrics</h6>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-label">Attendance</div>
+                                <div class="metric-value">${session.engagement_metrics.attendance}%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Unique Hands Raised</div>
+                                <div class="metric-value">${session.engagement_metrics.unique_hands_raised}</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Poll Vote %</div>
+                                <div class="metric-value">${session.engagement_metrics.poll_vote_percentage}%</div>
+                            </div>
                         </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Thumbs Down</div>
-                            <div class="metric-value">${session.engagement_metrics.thumbs_down}</div>
-                        </div>
-                    </div>
             `;
             
+            // Poll Results Section (Collapsible)
             if (session.poll_results && session.poll_results.length > 0) {
-                html += '<h6 class="mb-3 mt-4">Poll Results</h6>';
-                session.poll_results.forEach(poll => {
+                html += `
+                    <div class="poll-section">
+                        <div class="poll-header" onclick="togglePoll('${pollSectionId}')">
+                            <h6 class="poll-title">Poll Results</h6>
+                            <span class="grey-banner-toggle" id="toggle-poll-${pollSectionId}">▼</span>
+                        </div>
+                        <div class="poll-content" id="${pollSectionId}">
+                `;
+                
+                session.poll_results.forEach((poll, pollIndex) => {
+                    const pollItemId = `poll-${session.session_id}-${pollIndex}`;
                     html += `
-                        <div class="poll-result-card">
-                            <div class="poll-question">${poll.question}</div>
-                            <div class="poll-options">
+                        <div style="margin-bottom: 1rem;">
+                            <div class="poll-header" onclick="togglePoll('${pollItemId}')" style="margin-bottom: 0.5rem;">
+                                <div>
+                                    <strong>${poll.question}</strong>
+                                    <span class="poll-badge ${poll.is_graded ? 'graded' : 'ungraded'}">${poll.is_graded ? 'Graded' : 'Ungraded'}</span>
+                                </div>
+                                <span class="grey-banner-toggle" id="toggle-poll-${pollItemId}">▼</span>
+                            </div>
+                            <div class="poll-content" id="${pollItemId}">
+                                <div class="poll-options">
                     `;
                     poll.options.forEach((option, index) => {
                         const count = poll.option_counts[index] || 0;
@@ -535,36 +729,53 @@ async function loadMetrics() {
                         `;
                     });
                     html += `
-                                <div class="text-muted mt-2">Total Responses: ${poll.total_responses}</div>
+                                    <div class="text-muted mt-2">Total Responses: ${poll.total_responses}</div>
+                                </div>
                             </div>
                         </div>
                     `;
                 });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
             } else {
                 html += '<div class="text-muted mb-3">No polls conducted during this session.</div>';
             }
             
+            // Attendance List Section (Collapsible and Sortable)
             if (session.attendance_list && session.attendance_list.length > 0) {
                 html += `
-                    <h6 class="mb-3 mt-4">Attendance List</h6>
-                    <table class="table table-striped attendance-table">
-                        <thead>
-                            <tr>
-                                <th>Student Number</th>
-                                <th>Student Name</th>
-                                <th>Sign In Time</th>
-                                <th>Sign Out Time</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                    <div class="attendance-section">
+                        <div class="attendance-header" onclick="toggleAttendance('${attendanceSectionId}')">
+                            <h6 class="attendance-title">Attendance List</h6>
+                            <span class="grey-banner-toggle" id="toggle-attendance-${attendanceSectionId}">▼</span>
+                        </div>
+                        <div class="attendance-content" id="${attendanceSectionId}">
+                            <table class="table table-striped attendance-table" id="attendance-table-${session.session_id}">
+                                <thead>
+                                    <tr>
+                                        <th class="sortable" data-sort="student_number" data-type="text">Student Number</th>
+                                        <th class="sortable" data-sort="student_name" data-type="text">Student Name</th>
+                                        <th class="sortable" data-sort="sign_in_time" data-type="text">Join Time</th>
+                                        <th class="sortable" data-sort="sign_out_time" data-type="text">Exit Time</th>
+                                        <th class="sortable" data-sort="status" data-type="text">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendance-tbody-${session.session_id}">
                 `;
                 
                 session.attendance_list.forEach(att => {
                     const signInTime = att.sign_in_time ? new Date(att.sign_in_time).toLocaleString() : '-';
                     const signOutTime = att.sign_out_time ? new Date(att.sign_out_time).toLocaleString() : '-';
+                    const status = att.present ? 'Present' : 'Absent';
                     html += `
-                        <tr>
+                        <tr data-student-number="${att.student_number}" 
+                            data-student-name="${att.student_name}" 
+                            data-sign-in-time="${att.sign_in_time || ''}" 
+                            data-sign-out-time="${att.sign_out_time || ''}" 
+                            data-status="${status}">
                             <td>${att.student_number}</td>
                             <td>${att.student_name}</td>
                             <td>${signInTime}</td>
@@ -575,20 +786,77 @@ async function loadMetrics() {
                 });
                 
                 html += `
-                        </tbody>
-                    </table>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 `;
             } else {
                 html += '<div class="text-muted mb-3">No attendance records for this session.</div>';
             }
             
-            html += '</div>';
+            html += '</div></div>';
         });
         
         content.innerHTML = html;
+        
+        // Re-initialize sorting after tables are created
+        initSorting();
     } catch (error) {
         console.error('Error loading metrics:', error);
         document.getElementById('metricsContent').innerHTML = '<div class="text-center text-danger p-4">Error loading class metrics.</div>';
+    }
+}
+
+// Toggle session expansion
+function toggleSession(sessionId) {
+    const content = document.getElementById(sessionId);
+    const toggle = document.getElementById(`toggle-${sessionId}`);
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        toggle.textContent = '▼';
+        toggle.classList.remove('expanded');
+    } else {
+        content.classList.add('expanded');
+        toggle.textContent = '▲';
+        toggle.classList.add('expanded');
+    }
+}
+
+// Toggle poll expansion
+function togglePoll(pollId) {
+    const content = document.getElementById(pollId);
+    const toggle = document.getElementById(`toggle-poll-${pollId}`);
+    
+    if (content && toggle) {
+        if (content.classList.contains('expanded')) {
+            content.classList.remove('expanded');
+            toggle.textContent = '▼';
+            toggle.classList.remove('expanded');
+        } else {
+            content.classList.add('expanded');
+            toggle.textContent = '▲';
+            toggle.classList.add('expanded');
+        }
+    }
+}
+
+// Toggle attendance expansion
+function toggleAttendance(attendanceId) {
+    const content = document.getElementById(attendanceId);
+    const toggle = document.getElementById(`toggle-attendance-${attendanceId}`);
+    
+    if (content && toggle) {
+        if (content.classList.contains('expanded')) {
+            content.classList.remove('expanded');
+            toggle.textContent = '▼';
+            toggle.classList.remove('expanded');
+        } else {
+            content.classList.add('expanded');
+            toggle.textContent = '▲';
+            toggle.classList.add('expanded');
+        }
     }
 }
 
@@ -849,6 +1117,13 @@ function sortTable(tableBodyId, column, direction, type) {
         const dataAttr = column.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
         let aValue = a.dataset[dataAttr] || '';
         let bValue = b.dataset[dataAttr] || '';
+        
+        // Handle empty values for sign out time (show at end)
+        if (column === 'sign_out_time') {
+            if (!aValue && bValue) return direction === 'asc' ? 1 : -1;
+            if (aValue && !bValue) return direction === 'asc' ? -1 : 1;
+            if (!aValue && !bValue) return 0;
+        }
         
         // Handle numeric sorting
         if (type === 'number') {

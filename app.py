@@ -242,7 +242,13 @@ def classroom(class_id):
         db.session.add(settings)
         db.session.commit()
     
-    return render_template('classroom.html', class_obj=class_obj, students=students, settings=settings)
+    # Get active session for attendance grading setting
+    active_session = ClassSession.query.filter_by(
+        class_id=class_id,
+        end_time=None
+    ).order_by(ClassSession.start_time.desc()).first()
+    
+    return render_template('classroom.html', class_obj=class_obj, students=students, settings=settings, active_session=active_session)
 
 @app.route('/classroom/<int:class_id>/students')
 @login_required
@@ -715,6 +721,7 @@ def get_class_metrics(class_id):
             'session_number': session_number,
             'start_time': session.start_time.isoformat(),
             'end_time': session.end_time.isoformat() if session.end_time else None,
+            'exclude_from_grading': session.exclude_from_grading,
             'engagement_metrics': {
                 'attendance': round(attendance_percentage, 1),
                 'unique_hands_raised': unique_hands_raised,
@@ -727,6 +734,55 @@ def get_class_metrics(class_id):
         session_number -= 1  # Decrement for next session
     
     return jsonify(sessions_data)
+
+@app.route('/api/update_poll_grading/<int:poll_id>', methods=['POST'])
+@login_required
+def update_poll_grading(poll_id):
+    poll = Poll.query.get_or_404(poll_id)
+    class_obj = Class.query.get_or_404(poll.class_id)
+    
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.get_json()
+    is_graded = data.get('is_graded', False)
+    
+    poll.is_graded = is_graded
+    db.session.commit()
+    
+    return jsonify({'success': True, 'is_graded': poll.is_graded})
+
+@app.route('/api/update_session_grading/<int:session_id>', methods=['POST'])
+@login_required
+def update_session_grading(session_id):
+    session = ClassSession.query.get_or_404(session_id)
+    class_obj = Class.query.get_or_404(session.class_id)
+    
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.get_json()
+    exclude_from_grading = data.get('exclude_from_grading', False)
+    
+    session.exclude_from_grading = exclude_from_grading
+    db.session.commit()
+    
+    return jsonify({'success': True, 'exclude_from_grading': session.exclude_from_grading})
+
+@app.route('/api/delete_session/<int:session_id>', methods=['DELETE'])
+@login_required
+def delete_session(session_id):
+    session = ClassSession.query.get_or_404(session_id)
+    class_obj = Class.query.get_or_404(session.class_id)
+    
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Delete the session
+    db.session.delete(session)
+    db.session.commit()
+    
+    return jsonify({'success': True})
 
 @app.route('/api/update_settings/<int:class_id>', methods=['POST'])
 @login_required
@@ -861,6 +917,15 @@ def create_poll(class_id):
     correct_answer = data.get('correct_answer')
     is_graded = data.get('is_graded', False)
     is_anonymous = data.get('is_anonymous', False)
+    
+    # Validate options
+    if not options or len(options) < 2:
+        return jsonify({'success': False, 'error': 'At least 2 options are required'}), 400
+    
+    # Check for duplicate options (case-insensitive, trimmed)
+    options_lower = [opt.strip().lower() for opt in options if opt]
+    if len(options_lower) != len(set(options_lower)):
+        return jsonify({'success': False, 'error': 'Duplicate options are not allowed. Each option must be unique.'}), 400
     
     # Deactivate any existing active polls
     Poll.query.filter_by(class_id=class_id, is_active=True).update({'is_active': False})
@@ -1306,122 +1371,75 @@ def export_students(class_id):
     if class_obj.professor_id != current_user.id:
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
-    # Get active students
+    # Get active students only (matching template format)
     active_students = db.session.query(Student).join(Enrollment).filter(
         Enrollment.class_id == class_id,
         Enrollment.is_active == True
     ).order_by(Student.last_name, Student.first_name).all()
     
-    # Get inactive students
-    inactive_students = db.session.query(Student).join(Enrollment).filter(
-        Enrollment.class_id == class_id,
-        Enrollment.is_active == False
-    ).order_by(Student.last_name, Student.first_name).all()
-    
     # Create a new workbook
     wb = Workbook()
+    ws = wb.active
+    ws.title = "Students"  # Match template sheet name
     
-    # Remove default sheet and create our own
-    wb.remove(wb.active)
+    # Define the header row with exact format (5 columns) - matching template exactly
+    # Column order: A=First Name, B=Last Name, C=Preferred Name, D=Student Number, E=Email
+    headers = ['Student First Name', 'Last Name', 'Student Preferred Name', 'Student Number', 'Email']
+    ws.append(headers)
     
-    # Create Active Students sheet
-    ws_active = wb.create_sheet("Active Students")
-    
-    # Define the header row
-    headers = ['Student First Name', 'Last Name', 'Student Preferred Name', 'Student Number']
-    ws_active.append(headers)
-    
-    # Style the header row
+    # Style the header row - matching template styling
     header_fill = PatternFill(start_color="2A1A40", end_color="2A1A40", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF")
     
-    for cell in ws_active[1]:
+    for cell in ws[1]:
         cell.fill = header_fill
         cell.font = header_font
     
-    # Add active student rows
+    # Add active student rows with all 5 columns
     for student in active_students:
         row = [
             student.first_name,
             student.last_name,
             student.preferred_name if student.preferred_name else '',
             student.student_number,
-            student.email if hasattr(student, 'email') else ''
+            student.email if hasattr(student, 'email') and student.email else ''
         ]
-        ws_active.append(row)
+        ws.append(row)
     
-    # Auto-fit column widths for active sheet
+    # Auto-fit column widths - matching template calculation method
     from openpyxl.utils import get_column_letter
     
     if active_students:
+        # Calculate max lengths including headers
         max_first_name = max([len(student.first_name) for student in active_students] + [len('Student First Name')])
         max_last_name = max([len(student.last_name) for student in active_students] + [len('Last Name')])
         max_preferred_name = max([len(student.preferred_name or '') for student in active_students] + [len('Student Preferred Name')])
+        max_student_number = max([len(str(student.student_number)) for student in active_students] + [len('Student Number')])
+        max_email = max([len(getattr(student, 'email', '') or '') for student in active_students] + [len('Email')])
     else:
+        # If no students, use header lengths
         max_first_name = len('Student First Name')
         max_last_name = len('Last Name')
         max_preferred_name = len('Student Preferred Name')
+        max_student_number = len('Student Number')
+        max_email = len('Email')
     
+    # Columns: A=First Name, B=Last Name, C=Preferred Name, D=Student Number, E=Email
     columns_data = [
         ('A', 'Student First Name', max_first_name),
         ('B', 'Last Name', max_last_name),
         ('C', 'Student Preferred Name', max_preferred_name),
-        ('D', 'Student Number', len('Student Number')),
+        ('D', 'Student Number', max_student_number),
         ('E', 'Email', max_email)
     ]
     
     for col_letter, header_text, max_content_length in columns_data:
+        # Calculate width based on the longest content (header or data)
+        # Multiply by 1.15 for padding and add 2 for extra spacing
         column_width = max(max_content_length * 1.15 + 2, 12)
+        # Cap maximum width at 50 to prevent extremely wide columns
         column_width = min(column_width, 50)
-        ws_active.column_dimensions[col_letter].width = column_width
-    
-    # Create Inactive Students sheet (if there are inactive students)
-    if inactive_students:
-        ws_inactive = wb.create_sheet("Inactive Students")
-        
-        # Same headers
-        ws_inactive.append(headers)
-        
-        # Style the header row
-        for cell in ws_inactive[1]:
-            cell.fill = header_fill
-            cell.font = header_font
-        
-        # Add inactive student rows
-        for student in inactive_students:
-            row = [
-                student.first_name,
-                student.last_name,
-                student.preferred_name if student.preferred_name else '',
-                student.student_number,
-                student.email if hasattr(student, 'email') else ''
-            ]
-            ws_inactive.append(row)
-        
-        # Auto-fit column widths for inactive sheet
-        if inactive_students:
-            max_first_name = max([len(student.first_name) for student in inactive_students] + [len('Student First Name')])
-            max_last_name = max([len(student.last_name) for student in inactive_students] + [len('Last Name')])
-            max_preferred_name = max([len(student.preferred_name or '') for student in inactive_students] + [len('Student Preferred Name')])
-            max_email = max([len(getattr(student, 'email', '') or '') for student in inactive_students] + [len('Email')])
-        else:
-            max_first_name = len('Student First Name')
-            max_last_name = len('Last Name')
-            max_preferred_name = len('Student Preferred Name')
-            max_email = len('Email')
-        
-        columns_data_inactive = [
-            ('A', 'Student First Name', max_first_name),
-            ('B', 'Last Name', max_last_name),
-            ('C', 'Student Preferred Name', max_preferred_name),
-            ('D', 'Student Number', len('Student Number')),
-            ('E', 'Email', max_email)
-        ]
-        
-        for col_letter, header_text, max_content_length in columns_data_inactive:
-            column_width = max(max_content_length * 1.15 + 2, 12)
-            column_width = min(column_width, 50)
-            ws_inactive.column_dimensions[col_letter].width = column_width
+        ws.column_dimensions[col_letter].width = column_width
     
     # Create BytesIO object to store the Excel file in memory
     excel_buffer = BytesIO()
@@ -2365,6 +2383,7 @@ def live_dashboard(class_id):
     # Get active poll
     active_poll = Poll.query.filter_by(class_id=class_id, is_active=True).first()
     poll_data = None
+    poll_results_data = None
     if active_poll:
         poll_data = {
             'poll_id': active_poll.id,
@@ -2372,6 +2391,22 @@ def live_dashboard(class_id):
             'options': json.loads(active_poll.options),
             'is_anonymous': active_poll.is_anonymous,
             'is_graded': active_poll.is_graded
+        }
+        
+        # Include poll results in the same response to avoid dual refresh
+        responses = PollResponse.query.filter_by(poll_id=active_poll.id).all()
+        options = json.loads(active_poll.options)
+        
+        option_counts = {}
+        for i in range(len(options)):
+            option_counts[i] = sum(1 for r in responses if r.answer == i)
+        
+        poll_results_data = {
+            'success': True,
+            'question': active_poll.question,
+            'options': options,
+            'option_counts': option_counts,
+            'total_responses': len(responses)
         }
     
     return jsonify({
@@ -2384,6 +2419,7 @@ def live_dashboard(class_id):
         'present_students': len(present_students),
         'total_students': total_students,
         'active_poll': poll_data,
+        'poll_results': poll_results_data,
         'show_first_name_only': settings.show_first_name_only
     })
 

@@ -150,6 +150,10 @@
     .table {
         table-layout: fixed;
         width: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        border-collapse: separate;
+        border-spacing: 0;
     }
     
     .table thead th {
@@ -158,6 +162,22 @@
         font-weight: 600;
         border: none;
         padding: 1rem;
+    }
+    
+    .table thead th:first-child {
+        border-top-left-radius: 12px;
+    }
+    
+    .table thead th:last-child {
+        border-top-right-radius: 12px;
+    }
+    
+    .table tbody tr:last-child td:first-child {
+        border-bottom-left-radius: 12px;
+    }
+    
+    .table tbody tr:last-child td:last-child {
+        border-bottom-right-radius: 12px;
     }
     
     /* Column widths: Name fields, Student Number, Email, and Actions */

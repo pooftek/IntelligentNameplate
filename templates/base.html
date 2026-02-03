@@ -63,6 +63,24 @@
             z-index: 1001;
             pointer-events: none;
         }
+        
+        /* Global scrollbar styling - consistent across all pages */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #2A1A40;
+            border-radius: 6px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3B2556;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>

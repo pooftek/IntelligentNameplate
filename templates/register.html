@@ -2,12 +2,40 @@
 
 {% block title %}Register - Classroom App{% endblock %}
 
+{% block extra_css %}
+<style>
+    body {
+        zoom: 1.25;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        overflow: hidden;
+        padding-top: 15vh;
+    }
+    
+    .register-title {
+        font-size: clamp(1.75rem, 5vw, 2.5rem);
+        font-weight: bold;
+    }
+    
+    .register-card {
+        width: clamp(300px, 90vw, 450px);
+        padding: clamp(30px, 5vw, 50px);
+    }
+    
+    .register-subtitle {
+        font-size: clamp(0.9rem, 2vw, 1rem);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
-    <div class="card" style="width: 400px; padding: 40px;">
+<div class="card register-card">
         <div class="text-center mb-4">
-            <h2 class="fw-bold">Professor Registration</h2>
-            <p class="text-muted">Create your account</p>
+            <h2 class="fw-bold register-title">Professor Registration</h2>
+            <p class="text-muted register-subtitle">Create your account</p>
         </div>
         <form id="registerForm">
             <div class="mb-3">
@@ -33,7 +61,6 @@
         <div class="text-center mt-3">
             <p class="text-muted">Already have an account? <a href="{{ url_for('login') }}" class="text-white">Login here</a></p>
         </div>
-    </div>
 </div>
 
 <script>

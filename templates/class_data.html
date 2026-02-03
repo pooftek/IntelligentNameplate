@@ -121,23 +121,35 @@
     }
     
     .nav-tabs .nav-link {
-        color: #2A1A40;
+        color: #6c757d;
         border: none;
         border-bottom: 3px solid transparent;
         padding: 1rem 2.5rem;
-        font-weight: 600;
+        font-weight: 500;
         font-size: 1.4rem;
+        opacity: 0.6;
+        transition: all 0.3s ease;
     }
     
     .nav-tabs .nav-link:hover {
         border-bottom-color: transparent;
-        color: #3B2556;
+        color: #495057;
+        opacity: 0.8;
     }
     
     .nav-tabs .nav-link.active {
         color: #2A1A40;
-        border-bottom-color: transparent;
+        border-bottom-color: #2A1A40;
         background-color: transparent;
+        font-weight: 700;
+        opacity: 1;
+    }
+    
+    .table {
+        border-radius: 12px;
+        overflow: hidden;
+        border-collapse: separate;
+        border-spacing: 0;
     }
     
     .table thead th {
@@ -148,9 +160,51 @@
         padding: 1rem;
     }
     
+    .table thead th:first-child {
+        border-top-left-radius: 12px;
+    }
+    
+    .table thead th:last-child {
+        border-top-right-radius: 12px;
+    }
+    
     .table tbody td {
         padding: 1rem;
         vertical-align: middle;
+    }
+    
+    /* Center percentage columns in Gradebook */
+    .table tbody td:nth-child(3),
+    .table thead th:nth-child(3) {
+        text-align: center; /* Attendance Grade */
+    }
+    
+    .table tbody td:nth-child(4),
+    .table thead th:nth-child(4) {
+        text-align: center; /* Instructor Grade */
+    }
+    
+    .table tbody td:nth-child(5),
+    .table thead th:nth-child(5) {
+        text-align: center; /* Peer Grade */
+    }
+    
+    .table tbody td:nth-child(6),
+    .table thead th:nth-child(6) {
+        text-align: center; /* Poll Grade */
+    }
+    
+    .table tbody td:nth-child(7),
+    .table thead th:nth-child(7) {
+        text-align: center; /* Overall Grade */
+    }
+    
+    .table tbody tr:last-child td:first-child {
+        border-bottom-left-radius: 12px;
+    }
+    
+    .table tbody tr:last-child td:last-child {
+        border-bottom-right-radius: 12px;
     }
     
     .table-striped tbody tr:nth-of-type(odd) {
@@ -171,16 +225,23 @@
     
     .session-banner-header {
         padding: 1.25rem 1.5rem;
-        cursor: pointer;
         display: flex;
         justify-content: space-between;
         align-items: center;
         background-color: #4F2683;
         transition: background-color 0.2s;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+        gap: 1rem;
     }
     
     .session-banner-header:hover {
         background-color: #5F3693;
+    }
+    
+    .session-banner-title {
+        flex: 1;
+        min-width: 0;
     }
     
     .session-banner-title {
@@ -193,15 +254,84 @@
     .session-banner-toggle {
         font-size: 1.5rem;
         color: white;
-        transition: transform 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.2em;
+        height: 1.2em;
+        vertical-align: middle;
     }
     
-    .session-banner-toggle.expanded {
-        transform: rotate(180deg);
+    .session-banner-toggle svg {
+        width: 100%;
+        height: 100%;
+        fill: currentColor;
+        display: block;
     }
     
-    .grey-banner-toggle.expanded {
-        transform: rotate(180deg);
+    .grey-banner-toggle {
+        font-size: 1.5rem;
+        color: #4F2683;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.2em;
+        height: 1.2em;
+        vertical-align: middle;
+    }
+    
+    .grey-banner-toggle svg {
+        width: 100%;
+        height: 100%;
+        fill: currentColor;
+        display: block;
+    }
+    
+    .grading-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .grading-toggle label {
+        font-size: 0.875rem;
+        color: #495057;
+        margin: 0;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    
+    .grading-toggle input[type="checkbox"] {
+        width: 1.2rem;
+        height: 1.2rem;
+        cursor: pointer;
+        accent-color: #550DB1;
+    }
+    
+    .session-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-left: auto;
+    }
+    
+    .delete-session-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .delete-session-btn:hover {
+        background-color: #c82333;
+    }
+    
+    .session-banner-header {
+        position: relative;
     }
     
     .session-banner-content {
@@ -217,6 +347,10 @@
         border-bottom: 2px solid #2A1A40;
         padding-bottom: 1rem;
         margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
     }
     
     .poll-section {
@@ -226,12 +360,12 @@
     .poll-header {
         padding: 0.75rem 1rem;
         background-color: #e9ecef;
-        border-radius: 5px;
-        cursor: pointer;
+        border-radius: 12px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 0.5rem;
+        gap: 1rem;
     }
     
     .poll-header:hover {
@@ -268,7 +402,7 @@
         padding: 1rem;
         background-color: white;
         border: 1px solid #dee2e6;
-        border-radius: 5px;
+        border-radius: 12px;
     }
     
     .poll-content.expanded {
@@ -282,7 +416,7 @@
     .attendance-header {
         padding: 0.75rem 1rem;
         background-color: #e9ecef;
-        border-radius: 5px;
+        border-radius: 12px;
         cursor: pointer;
         display: flex;
         justify-content: space-between;
@@ -358,6 +492,26 @@
     
     .attendance-table {
         margin-top: 1rem;
+        border-radius: 12px;
+        overflow: hidden;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .attendance-table thead th:first-child {
+        border-top-left-radius: 12px;
+    }
+    
+    .attendance-table thead th:last-child {
+        border-top-right-radius: 12px;
+    }
+    
+    .attendance-table tbody tr:last-child td:first-child {
+        border-bottom-left-radius: 12px;
+    }
+    
+    .attendance-table tbody tr:last-child td:last-child {
+        border-bottom-right-radius: 12px;
     }
     
     .attendance-table th:first-child,
@@ -367,21 +521,35 @@
     
     .attendance-table th:nth-child(2),
     .attendance-table td:nth-child(2) {
-        text-align: left;
+        text-align: center;
     }
     
     .attendance-table th:nth-child(3),
     .attendance-table td:nth-child(3) {
-        text-align: left;
+        text-align: center; /* Join Time - centered */
     }
     
     .attendance-table th:nth-child(4),
     .attendance-table td:nth-child(4) {
-        text-align: center;
+        text-align: center; /* Exit Time - centered */
     }
     
     .attendance-table th:nth-child(5),
     .attendance-table td:nth-child(5) {
+        text-align: center;
+    }
+    
+    .attendance-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    
+    .attendance-table th,
+    .attendance-table td {
+        width: 20%;
+    }
+    
+    .attendance-table th {
         text-align: center;
     }
     
@@ -598,8 +766,8 @@ async function loadGradebook() {
                         <th class="sortable" data-sort="name" data-type="text">Student Name</th>
                         <th class="sortable" data-sort="student_number" data-type="number">Student Number</th>
                         <th class="sortable" data-sort="attendance_grade" data-type="number">Attendance Grade</th>
-                        <th class="sortable" data-sort="instructor_participation" data-type="number">Instructor Participation</th>
-                        <th class="sortable" data-sort="peer_participation" data-type="number">Peer Participation</th>
+                        <th class="sortable" data-sort="instructor_participation" data-type="number">Instructor Grade</th>
+                        <th class="sortable" data-sort="peer_participation" data-type="number">Peer Grade</th>
                         <th class="sortable" data-sort="poll_grade" data-type="number">Poll Grade</th>
                         <th class="sortable" data-sort="overall_grade" data-type="number">Overall Grade</th>
                     </tr>
@@ -613,8 +781,8 @@ async function loadGradebook() {
                     <td>${student.name}</td>
                     <td>${student.student_number}</td>
                     <td>${student.attendance_grade.toFixed(2)}%</td>
-                    <td>${student.instructor_participation.toFixed(2)}</td>
-                    <td>${student.peer_participation.toFixed(2)}</td>
+                    <td>${student.instructor_participation.toFixed(2)}%</td>
+                    <td>${student.peer_participation.toFixed(2)}%</td>
                     <td>${student.poll_grade.toFixed(2)}%</td>
                     <td><strong>${student.overall_grade.toFixed(2)}%</strong></td>
                 </tr>
@@ -666,16 +834,23 @@ async function loadMetrics() {
             
             html += `
                 <div class="session-banner">
-                    <div class="session-banner-header" onclick="toggleSession('${sessionId}')">
-                        <h5 class="session-banner-title">${className}: Session #${sessionNumber}, ${sessionDate}</h5>
-                        <span class="session-banner-toggle" id="toggle-${sessionId}">▼</span>
+                    <div class="session-banner-header" onclick="toggleSession('${sessionId}')" style="cursor: pointer;">
+                        <h5 class="session-banner-title" style="flex: 1;">${className}: Session #${sessionNumber}, ${sessionDate}</h5>
+                        <span class="session-banner-toggle" id="toggle-${sessionId}">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z" fill="currentColor"/>
+                            </svg>
+                        </span>
                     </div>
                     <div class="session-banner-content" id="${sessionId}">
                         <div class="session-header">
-                            <div class="text-muted">
+                            <div class="text-muted" style="flex: 1;">
                                 <strong>Start:</strong> ${startTime.toLocaleString()}<br>
                                 <strong>End:</strong> ${endTime ? endTime.toLocaleString() : 'In Progress'}
                             </div>
+                            <button class="delete-session-btn" onclick="deleteSession(${session.session_id})" title="Delete Session">
+                                <i class="bi bi-trash"></i> Delete Session
+                            </button>
                         </div>
                         
                         <h6 class="mb-3">Engagement Metrics</h6>
@@ -701,7 +876,11 @@ async function loadMetrics() {
                     <div class="poll-section">
                         <div class="poll-header" onclick="togglePoll('${pollSectionId}')">
                             <h6 class="poll-title">Poll Results</h6>
-                            <span class="grey-banner-toggle" id="toggle-poll-${pollSectionId}">▼</span>
+                            <span class="grey-banner-toggle" id="toggle-poll-${pollSectionId}">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z" fill="currentColor"/>
+                                </svg>
+                            </span>
                         </div>
                         <div class="poll-content" id="${pollSectionId}">
                 `;
@@ -710,12 +889,24 @@ async function loadMetrics() {
                     const pollItemId = `poll-${session.session_id}-${pollIndex}`;
                     html += `
                         <div style="margin-bottom: 1rem;">
-                            <div class="poll-header" onclick="togglePoll('${pollItemId}')" style="margin-bottom: 0.5rem;">
-                                <div>
+                            <div class="poll-header" onclick="togglePoll('${pollItemId}')" style="margin-bottom: 0.5rem; cursor: pointer;">
+                                <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
                                     <strong>${poll.question}</strong>
                                     <span class="poll-badge ${poll.is_graded ? 'graded' : 'ungraded'}">${poll.is_graded ? 'Graded' : 'Ungraded'}</span>
                                 </div>
-                                <span class="grey-banner-toggle" id="toggle-poll-${pollItemId}">▼</span>
+                                <div style="display: flex; align-items: center; gap: 1rem;" onclick="event.stopPropagation();">
+                                    <div class="grading-toggle">
+                                        <input type="checkbox" id="poll-toggle-${poll.poll_id}" ${poll.is_graded ? 'checked' : ''} onchange="togglePollGrading(${poll.poll_id}, this.checked)">
+                                        <label for="poll-toggle-${poll.poll_id}">
+                                            Graded
+                                        </label>
+                                    </div>
+                                    <span class="grey-banner-toggle" id="toggle-poll-${pollItemId}">
+                                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z" fill="currentColor"/>
+                                        </svg>
+                                    </span>
+                                </div>
                             </div>
                             <div class="poll-content" id="${pollItemId}">
                                 <div class="poll-options">
@@ -746,11 +937,24 @@ async function loadMetrics() {
             
             // Attendance List Section (Collapsible and Sortable)
             if (session.attendance_list && session.attendance_list.length > 0) {
+                const excludeFromGrading = session.exclude_from_grading || false;
                 html += `
                     <div class="attendance-section">
-                        <div class="attendance-header" onclick="toggleAttendance('${attendanceSectionId}')">
-                            <h6 class="attendance-title">Attendance List</h6>
-                            <span class="grey-banner-toggle" id="toggle-attendance-${attendanceSectionId}">▼</span>
+                        <div class="attendance-header" onclick="toggleAttendance('${attendanceSectionId}')" style="cursor: pointer;">
+                            <h6 class="attendance-title" style="flex: 1;">Attendance List</h6>
+                            <div style="display: flex; align-items: center; gap: 1rem;" onclick="event.stopPropagation();">
+                                <div class="grading-toggle">
+                                    <input type="checkbox" id="attendance-toggle-${session.session_id}" ${excludeFromGrading ? '' : 'checked'} onchange="toggleSessionAttendance(${session.session_id}, this.checked)">
+                                    <label for="attendance-toggle-${session.session_id}">
+                                        Graded
+                                    </label>
+                                </div>
+                                <span class="grey-banner-toggle" id="toggle-attendance-${attendanceSectionId}">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z" fill="currentColor"/>
+                                    </svg>
+                                </span>
+                            </div>
                         </div>
                         <div class="attendance-content" id="${attendanceSectionId}">
                             <table class="table table-striped attendance-table" id="attendance-table-${session.session_id}">
@@ -766,7 +970,14 @@ async function loadMetrics() {
                                 <tbody id="attendance-tbody-${session.session_id}">
                 `;
                 
-                session.attendance_list.forEach(att => {
+                // Sort attendance list by status (Present first, then Absent)
+                const sortedAttendanceList = [...session.attendance_list].sort((a, b) => {
+                    if (a.present && !b.present) return -1; // Present comes first
+                    if (!a.present && b.present) return 1; // Absent comes after
+                    return 0; // Keep original order for same status
+                });
+                
+                sortedAttendanceList.forEach(att => {
                     const signInTime = att.sign_in_time ? new Date(att.sign_in_time).toLocaleString() : '-';
                     const signOutTime = att.sign_out_time ? new Date(att.sign_out_time).toLocaleString() : '-';
                     const status = att.present ? 'Present' : 'Absent';
@@ -812,15 +1023,46 @@ async function loadMetrics() {
 function toggleSession(sessionId) {
     const content = document.getElementById(sessionId);
     const toggle = document.getElementById(`toggle-${sessionId}`);
+    const svg = toggle.querySelector('svg path');
     
     if (content.classList.contains('expanded')) {
         content.classList.remove('expanded');
-        toggle.textContent = '▼';
-        toggle.classList.remove('expanded');
+        svg.setAttribute('d', 'M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z');
+        
+        // Reset all dropdowns within this session
+        const sessionContent = document.getElementById(sessionId);
+        if (sessionContent) {
+            // Close all poll sections (both main poll section and individual poll items)
+            const pollSections = sessionContent.querySelectorAll('.poll-content.expanded');
+            pollSections.forEach(pollContent => {
+                pollContent.classList.remove('expanded');
+                const pollId = pollContent.id;
+                const pollToggle = document.getElementById(`toggle-poll-${pollId}`);
+                if (pollToggle) {
+                    const pollSvg = pollToggle.querySelector('svg path');
+                    if (pollSvg) {
+                        pollSvg.setAttribute('d', 'M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z');
+                    }
+                }
+            });
+            
+            // Close attendance section
+            const attendanceSections = sessionContent.querySelectorAll('.attendance-content.expanded');
+            attendanceSections.forEach(attendanceContent => {
+                attendanceContent.classList.remove('expanded');
+                const attendanceId = attendanceContent.id;
+                const attendanceToggle = document.getElementById(`toggle-attendance-${attendanceId}`);
+                if (attendanceToggle) {
+                    const attendanceSvg = attendanceToggle.querySelector('svg path');
+                    if (attendanceSvg) {
+                        attendanceSvg.setAttribute('d', 'M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z');
+                    }
+                }
+            });
+        }
     } else {
         content.classList.add('expanded');
-        toggle.textContent = '▲';
-        toggle.classList.add('expanded');
+        svg.setAttribute('d', 'M12 7.5 Q12.9 7.5 13.5 8.1 L17.2 13.8 Q17.8 14.4 17.2 15 L16.4 15.8 Q15.8 16.4 15 15.8 L12 15.8 L9 15.8 Q8.2 16.4 7.6 15.8 L6.8 15 Q6.2 14.4 6.8 13.8 L10.5 8.1 Q11.1 7.5 12 7.5 Z');
     }
 }
 
@@ -830,14 +1072,15 @@ function togglePoll(pollId) {
     const toggle = document.getElementById(`toggle-poll-${pollId}`);
     
     if (content && toggle) {
-        if (content.classList.contains('expanded')) {
-            content.classList.remove('expanded');
-            toggle.textContent = '▼';
-            toggle.classList.remove('expanded');
-        } else {
-            content.classList.add('expanded');
-            toggle.textContent = '▲';
-            toggle.classList.add('expanded');
+        const svg = toggle.querySelector('svg path');
+        if (svg) {
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                svg.setAttribute('d', 'M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z');
+            } else {
+                content.classList.add('expanded');
+                svg.setAttribute('d', 'M12 7.5 Q12.9 7.5 13.5 8.1 L17.2 13.8 Q17.8 14.4 17.2 15 L16.4 15.8 Q15.8 16.4 15 15.8 L12 15.8 L9 15.8 Q8.2 16.4 7.6 15.8 L6.8 15 Q6.2 14.4 6.8 13.8 L10.5 8.1 Q11.1 7.5 12 7.5 Z');
+            }
         }
     }
 }
@@ -848,15 +1091,119 @@ function toggleAttendance(attendanceId) {
     const toggle = document.getElementById(`toggle-attendance-${attendanceId}`);
     
     if (content && toggle) {
-        if (content.classList.contains('expanded')) {
-            content.classList.remove('expanded');
-            toggle.textContent = '▼';
-            toggle.classList.remove('expanded');
-        } else {
-            content.classList.add('expanded');
-            toggle.textContent = '▲';
-            toggle.classList.add('expanded');
+        const svg = toggle.querySelector('svg path');
+        if (svg) {
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                svg.setAttribute('d', 'M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z');
+            } else {
+                content.classList.add('expanded');
+                svg.setAttribute('d', 'M12 7.5 Q12.9 7.5 13.5 8.1 L17.2 13.8 Q17.8 14.4 17.2 15 L16.4 15.8 Q15.8 16.4 15 15.8 L12 15.8 L9 15.8 Q8.2 16.4 7.6 15.8 L6.8 15 Q6.2 14.4 6.8 13.8 L10.5 8.1 Q11.1 7.5 12 7.5 Z');
+            }
         }
+    }
+}
+
+// Toggle poll grading status
+async function togglePollGrading(pollId, isGraded) {
+    try {
+        const response = await fetch(`/api/update_poll_grading/${pollId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ is_graded: isGraded })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update the badge in the UI
+            const pollBadge = document.querySelector(`#poll-toggle-${pollId}`).closest('.poll-header').querySelector('.poll-badge');
+            if (pollBadge) {
+                pollBadge.textContent = isGraded ? 'Graded' : 'Ungraded';
+                pollBadge.className = `poll-badge ${isGraded ? 'graded' : 'ungraded'}`;
+            }
+            // Reload gradebook to reflect changes
+            loadGradebook();
+        } else {
+            alert('Error updating poll grading status');
+            // Revert toggle
+            const toggle = document.getElementById(`poll-toggle-${pollId}`);
+            if (toggle) {
+                toggle.checked = !isGraded;
+            }
+        }
+    } catch (error) {
+        console.error('Error updating poll grading:', error);
+        alert('Error updating poll grading status');
+        // Revert toggle
+        const toggle = document.getElementById(`poll-toggle-${pollId}`);
+        if (toggle) {
+            toggle.checked = !isGraded;
+        }
+    }
+}
+
+// Toggle session attendance counting
+async function toggleSessionAttendance(sessionId, countForAttendance) {
+    try {
+        const response = await fetch(`/api/update_session_grading/${sessionId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ exclude_from_grading: !countForAttendance })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Reload gradebook to reflect changes
+            loadGradebook();
+        } else {
+            alert('Error updating session attendance counting');
+            // Revert toggle
+            const toggle = document.getElementById(`attendance-toggle-${sessionId}`);
+            if (toggle) {
+                toggle.checked = !countForAttendance;
+            }
+        }
+    } catch (error) {
+        console.error('Error updating session attendance:', error);
+        alert('Error updating session attendance counting');
+        // Revert toggle
+        const toggle = document.getElementById(`attendance-toggle-${sessionId}`);
+        if (toggle) {
+            toggle.checked = !countForAttendance;
+        }
+    }
+}
+
+// Delete session
+async function deleteSession(sessionId) {
+    if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/delete_session/${sessionId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Reload metrics to reflect deletion
+            loadMetrics();
+            // Reload gradebook to reflect changes
+            loadGradebook();
+        } else {
+            alert('Error deleting session');
+        }
+    } catch (error) {
+        console.error('Error deleting session:', error);
+        alert('Error deleting session');
     }
 }
 

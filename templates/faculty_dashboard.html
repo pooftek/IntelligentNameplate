@@ -61,12 +61,12 @@
     }
     
     .dashboard-content::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.3);
+        background: #2A1A40;
         border-radius: 6px;
     }
     
     .dashboard-content::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.5);
+        background: #3B2556;
     }
     
     /* Light grey background container */
@@ -178,6 +178,29 @@
         margin-bottom: 1.5rem;
     }
     
+    /* Override grid positioning for metric cards inside metrics-container (attendance tab) */
+    .metrics-container .metric-card {
+        grid-row: auto;
+        grid-column: auto;
+        min-height: 500px; /* Ensure cards have minimum height and are always visible */
+        height: 100%; /* Make cards fill available height */
+    }
+    
+    /* Ensure attendance tab content displays both cards properly */
+    #attendanceContent {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    
+    #attendanceContent .metrics-container {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        align-items: stretch; /* Make both cards same height */
+    }
+    
     /* Dashboard layout: Grid with Live Metrics top-left, Poll Statistics bottom-left, Hands Raised full height right */
     .dashboard-layout {
         display: grid;
@@ -224,11 +247,27 @@
         grid-column: 1;
     }
     
+    .metric-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
     .metric-card h6 {
         color: #2d2d2d;
         font-weight: 600;
-        margin-bottom: 0.75rem;
+        margin: 0;
         font-size: 1.25rem;
+        margin-bottom: 1rem; /* Add space between title and content */
+    }
+    
+    .clear-metrics-btn {
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.25rem 0.75rem;
+        border-radius: 8px;
+        min-width: 80px;
     }
     
     .metric-value {
@@ -355,6 +394,25 @@
         font-size: 0.9rem;
     }
     
+    .hands-raised-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .hands-raised-card h6 {
+        margin: 0;
+    }
+    
+    .clear-hands-btn {
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.25rem 0.75rem;
+        border-radius: 8px;
+        min-width: 80px;
+    }
+    
     /* Poll card - smaller horizontally at bottom left */
     .poll-card {
         background-color: #f8f9fa;
@@ -368,25 +426,10 @@
         grid-row: 2;
         min-height: 0;
         max-height: 100%;
-        overflow-y: auto;
-    }
-    
-    .poll-card::-webkit-scrollbar {
-        width: 8px;
-    }
-    
-    .poll-card::-webkit-scrollbar-track {
-        background: #f8f9fa;
-        border-radius: 4px;
-    }
-    
-    .poll-card::-webkit-scrollbar-thumb {
-        background: #d1d5db;
-        border-radius: 4px;
-    }
-    
-    .poll-card::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af;
+        overflow: visible;
+        position: relative;
+        will-change: auto;
+        transform: translateZ(0);
     }
     
     .poll-card-header {
@@ -396,11 +439,32 @@
         margin-bottom: 0.75rem;
     }
     
+    .poll-header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .poll-header-buttons {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
     .poll-card h6 {
         color: #2d2d2d;
         font-weight: 600;
         margin: 0;
         font-size: 1.25rem;
+    }
+    
+    .vote-percentage-inline {
+        color: #2d2d2d;
+        font-size: 1rem;
+        font-weight: 600;
+        background-color: #d1d5db;
+        padding: 0.25rem 0.75rem;
+        border-radius: 6px;
     }
     
     .poll-controls {
@@ -412,6 +476,8 @@
     
     .poll-header-button {
         margin: 0;
+        min-width: 100px;
+        padding: 0.375rem 1rem;
     }
     
     .poll-controls select {
@@ -447,6 +513,8 @@
         grid-template-columns: 1fr 1fr;
         gap: 1.5rem;
         margin-top: 1rem;
+        position: relative;
+        will-change: auto;
     }
     
     .poll-table {
@@ -456,45 +524,40 @@
     .poll-table th {
         background-color: #d1d5db;
         padding: 0.75rem;
-        text-align: left;
+        text-align: center;
         font-weight: 600;
         color: #2d2d2d;
         border-bottom: 2px solid #c4c9d0;
     }
     
+    .poll-table th.text-left {
+        text-align: left;
+    }
+    
     .poll-table td {
         padding: 0.75rem;
         border-bottom: 1px solid #f0f0f0;
+        text-align: center;
     }
     
-    .poll-option-a { color: #dc3545; }
-    .poll-option-b { color: #28a745; }
+    .poll-table td.text-left {
+        text-align: left;
+    }
+    
+    .poll-option-green { color: #28a745; }
+    .poll-option-red { color: #dc3545; }
     .poll-option-c { color: #ffc107; }
     .poll-option-d { color: #007bff; }
     
     .poll-chart-container {
-        height: 250px;
+        height: calc(2.5rem + 5 * 3rem); /* Header (~2.5rem) + 5 rows (each ~3rem for taller graph) */
+        width: 100%;
         position: relative;
+        pointer-events: none;
     }
     
-    .vote-percentage-box {
-        background-color: #d1d5db;
-        border-radius: 10px;
-        padding: 1rem;
-        text-align: center;
-        margin-top: 1rem;
-    }
-    
-    .vote-percentage-label {
-        color: #6c757d;
-        font-size: 0.9rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .vote-percentage-value {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #2d2d2d;
+    .poll-chart-container canvas {
+        pointer-events: none;
     }
     
     .clear-data-btn {
@@ -523,6 +586,65 @@
         color: #6c757d;
         font-style: italic;
     }
+    
+    /* Poll card empty state - move up 1 row and center vertically */
+    .poll-card .empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: -1rem;
+        min-height: 200px;
+    }
+    
+    /* Hands raised empty state - move down 3 rows and center vertically */
+    .hands-raised-list .empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 3rem;
+        min-height: 200px;
+    }
+    
+    .modal-footer-btn {
+        height: 38px;
+        min-width: 120px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Settings Tab Styling */
+    .settings-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .settings-title {
+        color: #2d2d2d;
+        font-weight: 600;
+        font-size: 1.5rem;
+    }
+    
+    .settings-container h6 {
+        color: #2d2d2d;
+        font-weight: 600;
+        font-size: 1.125rem;
+    }
+    
+    .settings-container .form-check-label {
+        color: #2d2d2d;
+        font-size: 1rem;
+    }
+    
+    .settings-container .form-text {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+    
+    .settings-container hr {
+        border-color: #d1d5db;
+        opacity: 1;
+    }
 </style>
 {% endblock %}
 
@@ -544,6 +666,7 @@
             <div class="tab-nav">
                 <button class="tab-bubble active" onclick="showTab('dashboard')">Dashboard</button>
                 <button class="tab-bubble" onclick="showTab('attendance')">Attendance</button>
+                <button class="tab-bubble" onclick="showTab('settings')">Settings</button>
             </div>
             
             <!-- White Card Container for Tab Content -->
@@ -558,7 +681,67 @@
                 <!-- Attendance Tab Content -->
                 <div id="attendanceTab" class="tab-content" style="display: none;">
                     <div id="attendanceContent">
-                        <div class="loading">Loading attendance...</div>
+                        <div class="metrics-container">
+                            <!-- Present Students Card - Permanent -->
+                            <div class="metric-card">
+                                <h6>Present Students</h6>
+                                <div class="hands-raised-list" id="presentStudentsList">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Absent Students Card - Permanent -->
+                            <div class="metric-card">
+                                <h6>Absent Students</h6>
+                                <div class="hands-raised-list" id="absentStudentsList">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Settings Tab Content -->
+                <div id="settingsTab" class="tab-content" style="display: none;">
+                    <div id="settingsContent">
+                        <div class="settings-container">
+                            <h5 class="settings-title mb-4">Class Settings</h5>
+                            
+                            <form id="liveSettingsForm">
+                                <h6 class="mb-3">Display Preferences</h6>
+                                <div class="form-check form-switch mb-4">
+                                    <input class="form-check-input" type="checkbox" id="liveShowFirstNameOnly">
+                                    <label class="form-check-label" for="liveShowFirstNameOnly">
+                                        Show First Name Only
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-4">
+                                    <input class="form-check-input" type="checkbox" id="liveQuietMode">
+                                    <label class="form-check-label" for="liveQuietMode">
+                                        Quiet Mode
+                                    </label>
+                                </div>
+                                
+                                <hr class="my-4">
+                                
+                                <h6 class="mb-3">Attendance Settings</h6>
+                                <div class="form-check form-switch mb-4">
+                                    <input class="form-check-input" type="checkbox" id="liveExcludeFromGrading">
+                                    <label class="form-check-label" for="liveExcludeFromGrading">
+                                        Exclude This Session from Grading
+                                    </label>
+                                    <small class="form-text text-muted d-block mt-1">
+                                        When enabled, attendance for this class session will not count toward student grades.
+                                    </small>
+                                </div>
+                                
+                                <div class="d-flex justify-content-end gap-2 mt-4">
+                                    <button type="button" class="btn btn-secondary" onclick="loadLiveSettings()">Reset</button>
+                                    <button type="button" class="btn btn-primary" onclick="saveLiveSettings()">Save Settings</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -591,10 +774,10 @@
                     </div>
                     <div class="mb-3" id="pollOptionsContainer">
                         <label class="form-label">Options</label>
-                        <input type="text" class="form-control mb-2" id="option1" placeholder="Option A" required>
-                        <input type="text" class="form-control mb-2" id="option2" placeholder="Option B" required>
-                        <input type="text" class="form-control mb-2" id="option3" placeholder="Option C" required>
-                        <input type="text" class="form-control mb-2" id="option4" placeholder="Option D" required>
+                        <input type="text" class="form-control mb-2" id="option1" placeholder="Option A" required oninput="updateCorrectAnswerDropdown()">
+                        <input type="text" class="form-control mb-2" id="option2" placeholder="Option B" required oninput="updateCorrectAnswerDropdown()">
+                        <input type="text" class="form-control mb-2" id="option3" placeholder="Option C" required oninput="updateCorrectAnswerDropdown()">
+                        <input type="text" class="form-control mb-2" id="option4" placeholder="Option D" required oninput="updateCorrectAnswerDropdown()">
                     </div>
                     <div class="mb-3">
                         <label for="correctAnswer" class="form-label">Correct Answer (optional, for quiz)</label>
@@ -617,8 +800,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="createPoll()">Start Poll</button>
+                <button type="button" class="btn btn-light modal-footer-btn" data-bs-dismiss="modal" style="background-color: #dee2e6; color: #495057;">cancel</button>
+                <button type="button" class="btn btn-primary modal-footer-btn fw-bold" onclick="createPoll()">Start Poll</button>
             </div>
         </div>
     </div>
@@ -664,6 +847,13 @@ socket.on('poll_response', (data) => {
     loadDashboard();
 });
 
+socket.on('settings_updated', (data) => {
+    // Update settings form if settings tab is visible
+    if (document.getElementById('settingsTab').style.display !== 'none') {
+        loadLiveSettings();
+    }
+});
+
 // Tab switching
 function showTab(tabName) {
     // Update tab buttons
@@ -685,9 +875,12 @@ function showTab(tabName) {
     // Show/hide tab content
     document.getElementById('dashboardTab').style.display = tabName === 'dashboard' ? 'block' : 'none';
     document.getElementById('attendanceTab').style.display = tabName === 'attendance' ? 'block' : 'none';
+    document.getElementById('settingsTab').style.display = tabName === 'settings' ? 'block' : 'none';
     
     if (tabName === 'attendance') {
         loadAttendance();
+    } else if (tabName === 'settings') {
+        loadLiveSettings();
     }
 }
 
@@ -706,7 +899,10 @@ async function loadDashboard() {
         
         // Live Metrics Card - Horizontal Line (top-left, grid position 1,1)
         html += '<div class="metric-card">';
+        html += '<div class="metric-card-header">';
         html += '<h6>Live Metrics</h6>';
+        html += `<button class="btn btn-secondary clear-metrics-btn" onclick="clearLiveMetrics(${classId})" title="Clear all metrics">Clear</button>`;
+        html += '</div>';
         html += '<div class="live-metrics-grid">';
         
         // Attendance %
@@ -742,23 +938,23 @@ async function loadDashboard() {
         // Poll Card (bottom-left, grid position 2,1)
         html += '<div class="poll-card">';
         html += '<div class="poll-card-header">';
+        html += '<div class="poll-header-left">';
         html += '<h6>Poll Statistics</h6>';
+        if (data.active_poll) {
+            html += '<div class="vote-percentage-inline">0%</div>';
+        }
+        html += '</div>';
         
         if (data.active_poll) {
+            html += `<div class="poll-header-buttons">`;
+            html += `<button class="btn btn-secondary btn-sm poll-header-button" onclick="clearPollData(${data.active_poll.poll_id})">Clear Data</button>`;
             html += `<button class="btn btn-danger btn-sm poll-header-button" onclick="stopPoll(${data.active_poll.poll_id})">Stop Poll</button>`;
+            html += `</div>`;
         } else {
             html += '<button class="btn btn-start-poll poll-header-button" onclick="showCreatePollModal()">Start Poll</button>';
         }
         
         html += '</div>'; // End poll-card-header
-        
-        if (data.active_poll) {
-            html += '<div class="poll-controls">';
-            html += '<select id="numAnswers" disabled>';
-            html += `<option>${data.active_poll.options.length} Answers</option>`;
-            html += '</select>';
-            html += '</div>';
-        }
         
         if (data.active_poll) {
             html += '<div id="pollResultsContainer"></div>';
@@ -770,7 +966,10 @@ async function loadDashboard() {
         
         // Hands Raised Card (right, spans both rows, grid position 1-2,2)
         html += '<div class="hands-raised-card">';
+        html += '<div class="hands-raised-header">';
         html += '<h6>Hands Raised</h6>';
+        html += `<button class="btn btn-secondary clear-hands-btn" onclick="clearHandsRaised(${classId})" title="Clear all hands raised">Clear</button>`;
+        html += '</div>';
         html += '<div class="hands-raised-list">';
         if (data.hands_raised && data.hands_raised.length > 0) {
             data.hands_raised.forEach((item, index) => {
@@ -791,11 +990,22 @@ async function loadDashboard() {
         
         html += '</div>'; // End dashboard-layout
         
-        document.getElementById('dashboardContent').innerHTML = html;
+        const dashboardContent = document.getElementById('dashboardContent');
+        const existingPollContainer = dashboardContent.querySelector('#pollResultsContainer');
         
-        // Load poll results if active
-        if (data.active_poll) {
-            loadPollResults(data.active_poll.poll_id, data.present_students, data.active_poll.options);
+        // Update dashboard
+        dashboardContent.innerHTML = html;
+        
+        // Load poll results if active (using data from live_dashboard response to avoid dual refresh)
+        if (data.active_poll && data.poll_results) {
+            // Use the poll results from the live_dashboard response
+            updatePollResults(data.poll_results, data.present_students);
+        } else {
+            // Clear poll chart if poll is no longer active
+            if (pollChart) {
+                pollChart.destroy();
+                pollChart = null;
+            }
         }
         
     } catch (error) {
@@ -804,65 +1014,63 @@ async function loadDashboard() {
     }
 }
 
-// Load Poll Results
-async function loadPollResults(pollId, presentStudents, options) {
+// Update Poll Results (called directly with data from live_dashboard)
+function updatePollResults(data, presentStudents) {
     try {
-        const response = await fetch(`/api/poll_results/${pollId}`);
-        const data = await response.json();
-        
-        if (!data.success) return;
+        if (!data || !data.success) return;
         
         const container = document.getElementById('pollResultsContainer');
         if (!container) return;
         
-        let html = '<div class="poll-results-container">';
-        
-        // Results Table (Left)
-        html += '<div>';
-        html += '<table class="poll-table">';
-        html += '<thead><tr><th>Option</th><th>Responses</th><th>%</th></tr></thead>';
-        html += '<tbody>';
-        
-        const optionColors = ['poll-option-a', 'poll-option-b', 'poll-option-c', 'poll-option-d'];
-        data.options.forEach((option, index) => {
-            const count = data.option_counts[index] || 0;
-            const percentage = data.total_responses > 0 ? (count / data.total_responses * 100) : 0;
-            const colorClass = optionColors[index] || '';
-            html += `<tr>
-                <td class="${colorClass}"><strong>${option}</strong></td>
-                <td>${count}</td>
-                <td>${percentage.toFixed(0)}%</td>
-            </tr>`;
-        });
-        
-        html += '</tbody></table>';
-        html += '</div>';
-        
-        // Chart (Right)
-        html += '<div>';
-        html += '<div class="poll-chart-container"><canvas id="pollChart"></canvas></div>';
-        html += '<div class="vote-percentage-box">';
-        html += '<div class="vote-percentage-label">Vote %</div>';
-        const votePercentage = presentStudents > 0 ? (data.total_responses / presentStudents * 100) : 0;
-        html += `<div class="vote-percentage-value">${Math.min(100, votePercentage.toFixed(0))}%</div>`;
-        html += '</div>';
-        html += '<button class="clear-data-btn" onclick="clearPollData(' + pollId + ')">Clear Data</button>';
-        html += '</div>';
-        
-        html += '</div>';
-        
-        container.innerHTML = html;
-        
-        // Create chart
+        // Check if structure already exists
+        let resultsContainer = container.querySelector('.poll-results-container');
+        let tableBody = container.querySelector('.poll-table tbody');
         const ctx = document.getElementById('pollChart');
-        if (ctx && pollChart) {
-            pollChart.destroy();
-        }
-        if (ctx) {
-            const chartColors = ['#dc3545', '#28a745', '#ffc107', '#007bff', '#6c757d'];
-            pollChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
+        
+        // First time: create structure
+        if (!resultsContainer || !tableBody) {
+            let html = '<div class="poll-results-container">';
+            
+            // Results Table (Left)
+            html += '<div>';
+            html += '<table class="poll-table">';
+            html += '<thead><tr><th class="text-left">Answer</th><th>Responses</th><th>%</th></tr></thead>';
+            html += '<tbody>';
+            
+            // First answer green, second red, then default colors
+            const optionColors = ['poll-option-green', 'poll-option-red', 'poll-option-c', 'poll-option-d'];
+            data.options.forEach((option, index) => {
+                const count = data.option_counts[index] || 0;
+                const percentage = data.total_responses > 0 ? (count / data.total_responses * 100) : 0;
+                const colorClass = optionColors[index] || '';
+                html += `<tr data-option-index="${index}">
+                    <td class="${colorClass} text-left"><strong>${option}</strong></td>
+                    <td class="text-center poll-response-count">${count}</td>
+                    <td class="text-center poll-response-percent">${percentage.toFixed(0)}%</td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+            html += '</div>';
+            
+            // Chart (Right)
+            html += '<div>';
+            html += '<div class="poll-chart-container"><canvas id="pollChart"></canvas></div>';
+            html += '</div>';
+            
+            html += '</div>';
+            
+            container.innerHTML = html;
+            
+            // Get references after creating structure
+            resultsContainer = container.querySelector('.poll-results-container');
+            tableBody = container.querySelector('.poll-table tbody');
+            
+            // Create chart
+            const newCtx = document.getElementById('pollChart');
+            if (newCtx) {
+                const chartColors = ['#28a745', '#dc3545', '#ffc107', '#007bff', '#6c757d'];
+                const chartData = {
                     labels: data.options,
                     datasets: [{
                         label: 'Responses',
@@ -871,27 +1079,118 @@ async function loadPollResults(pollId, presentStudents, options) {
                         borderColor: data.options.map((_, i) => chartColors[i] || '#6c757d'),
                         borderWidth: 1
                     }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
+                };
+                
+                pollChart = new Chart(newCtx, {
+                    type: 'bar',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        onHover: (event, activeElements) => {
+                            // Disable hover effects completely
+                            event.native.target.style.cursor = 'default';
+                        },
+                        transitions: {
+                            active: {
+                                animation: {
+                                    duration: 0
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: false
                             }
                         }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
+                    }
+                });
+            }
+        } else {
+            // Update existing structure - only change text content, no DOM recreation
+            const optionColors = ['poll-option-green', 'poll-option-red', 'poll-option-c', 'poll-option-d'];
+            data.options.forEach((option, index) => {
+                const count = data.option_counts[index] || 0;
+                const percentage = data.total_responses > 0 ? (count / data.total_responses * 100) : 0;
+                
+                const row = tableBody.querySelector(`tr[data-option-index="${index}"]`);
+                if (row) {
+                    // Update answer text if it changed
+                    const answerCell = row.querySelector('td:first-child strong');
+                    if (answerCell && answerCell.textContent !== option) {
+                        answerCell.textContent = option;
+                    }
+                    
+                    // Update count
+                    const countCell = row.querySelector('.poll-response-count');
+                    if (countCell) {
+                        countCell.textContent = count;
+                    }
+                    
+                    // Update percentage
+                    const percentCell = row.querySelector('.poll-response-percent');
+                    if (percentCell) {
+                        percentCell.textContent = `${percentage.toFixed(0)}%`;
                     }
                 }
             });
+            
+            // Update chart data without animation
+            if (pollChart && ctx) {
+                const chartColors = ['#28a745', '#dc3545', '#ffc107', '#007bff', '#6c757d'];
+                pollChart.data.labels = data.options;
+                pollChart.data.datasets[0].data = data.options.map((_, i) => data.option_counts[i] || 0);
+                pollChart.data.datasets[0].backgroundColor = data.options.map((_, i) => chartColors[i] || '#6c757d');
+                pollChart.data.datasets[0].borderColor = data.options.map((_, i) => chartColors[i] || '#6c757d');
+                // Use 'none' mode and disable all interactions
+                pollChart.update('none');
+                // Ensure interactions stay disabled
+                if (pollChart.options) {
+                    pollChart.options.interaction = { intersect: false, mode: 'index' };
+                    if (pollChart.options.plugins) {
+                        pollChart.options.plugins.tooltip = { enabled: false };
+                    }
+                }
+            }
         }
         
+        // Update vote percentage in header (always update this)
+        const votePercentage = presentStudents > 0 ? (data.total_responses / presentStudents * 100) : 0;
+        const votePercentageElement = document.querySelector('.vote-percentage-inline');
+        if (votePercentageElement) {
+            votePercentageElement.textContent = `${Math.min(100, votePercentage.toFixed(0))}%`;
+        }
+        
+    } catch (error) {
+        console.error('Error updating poll results:', error);
+    }
+}
+
+// Load Poll Results (kept for backward compatibility, but should use updatePollResults instead)
+async function loadPollResults(pollId, presentStudents, options) {
+    try {
+        const response = await fetch(`/api/poll_results/${pollId}`);
+        const data = await response.json();
+        
+        if (!data.success) return;
+        
+        updatePollResults(data, presentStudents);
     } catch (error) {
         console.error('Error loading poll results:', error);
     }
@@ -904,55 +1203,103 @@ async function loadAttendance() {
         const data = await response.json();
         
         if (!data.success) {
-            document.getElementById('attendanceContent').innerHTML = '<div class="text-danger">Error loading attendance</div>';
+            document.getElementById('presentStudentsList').innerHTML = '<div class="text-danger">Error loading attendance</div>';
+            document.getElementById('absentStudentsList').innerHTML = '<div class="text-danger">Error loading attendance</div>';
             return;
         }
         
-        let html = '<div class="metrics-container">';
-        
-        // Present Students
-        html += '<div class="metric-card">';
-        html += '<h6>Present Students</h6>';
-        html += '<div class="hands-raised-list">';
-        const presentStudents = data.present_students || [];
-        if (presentStudents.length > 0) {
-            presentStudents.forEach(student => {
-                html += `<div class="hands-raised-item">
-                    <span class="student-name">${student.preferred_name || student.first_name} ${student.last_name}</span>
-                    <span class="student-number">${student.student_number}</span>
-                </div>`;
-            });
-        } else {
-            html += '<div class="empty-state">No students present</div>';
+        // Update Present Students List
+        const presentStudentsList = document.getElementById('presentStudentsList');
+        if (presentStudentsList) {
+            const presentStudents = data.present_students || [];
+            if (presentStudents.length > 0) {
+                let html = '';
+                presentStudents.forEach(student => {
+                    html += `<div class="hands-raised-item">
+                        <span class="student-name">${student.preferred_name || student.first_name} ${student.last_name}</span>
+                        <span class="student-number">${student.student_number}</span>
+                    </div>`;
+                });
+                presentStudentsList.innerHTML = html;
+            } else {
+                presentStudentsList.innerHTML = '<div class="empty-state">No students present</div>';
+            }
         }
-        html += '</div>';
-        html += '</div>';
         
-        // Absent Students
-        html += '<div class="metric-card">';
-        html += '<h6>Absent Students</h6>';
-        html += '<div class="hands-raised-list">';
-        const absentStudents = data.absent_students || [];
-        if (absentStudents.length > 0) {
-            absentStudents.forEach(student => {
-                html += `<div class="hands-raised-item">
-                    <span class="student-name">${student.preferred_name || student.first_name} ${student.last_name}</span>
-                    <span class="student-number">${student.student_number}</span>
-                </div>`;
-            });
-        } else {
-            html += '<div class="empty-state">All students are present</div>';
+        // Update Absent Students List
+        const absentStudentsList = document.getElementById('absentStudentsList');
+        if (absentStudentsList) {
+            const absentStudents = data.absent_students || [];
+            if (absentStudents.length > 0) {
+                let html = '';
+                absentStudents.forEach(student => {
+                    html += `<div class="hands-raised-item">
+                        <span class="student-name">${student.preferred_name || student.first_name} ${student.last_name}</span>
+                        <span class="student-number">${student.student_number}</span>
+                    </div>`;
+                });
+                absentStudentsList.innerHTML = html;
+            } else {
+                absentStudentsList.innerHTML = '<div class="empty-state">All students are present</div>';
+            }
         }
-        html += '</div>';
-        html += '</div>';
-        
-        html += '</div>';
-        
-        document.getElementById('attendanceContent').innerHTML = html;
         
     } catch (error) {
         console.error('Error loading attendance:', error);
-        document.getElementById('attendanceContent').innerHTML = '<div class="text-danger">Error loading attendance</div>';
+        const presentList = document.getElementById('presentStudentsList');
+        const absentList = document.getElementById('absentStudentsList');
+        if (presentList) presentList.innerHTML = '<div class="text-danger">Error loading attendance</div>';
+        if (absentList) absentList.innerHTML = '<div class="text-danger">Error loading attendance</div>';
+    }
+}
+
+// Load Live Settings
+async function loadLiveSettings() {
+    try {
+        const response = await fetch(`/api/live_preferences/${classId}`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            console.error('Error loading settings:', data.error);
+            return;
+        }
+        
+        // Update form fields
+        document.getElementById('liveShowFirstNameOnly').checked = data.show_first_name_only || false;
+        document.getElementById('liveQuietMode').checked = data.quiet_mode || false;
+        document.getElementById('liveExcludeFromGrading').checked = data.exclude_from_grading || false;
+        
+    } catch (error) {
+        console.error('Error loading live settings:', error);
+    }
+}
+
+// Save Live Settings
+async function saveLiveSettings() {
+    try {
+        const data = {
+            show_first_name_only: document.getElementById('liveShowFirstNameOnly').checked,
+            quiet_mode: document.getElementById('liveQuietMode').checked,
+            exclude_from_grading: document.getElementById('liveExcludeFromGrading').checked
+        };
+        
+        const response = await fetch(`/api/update_settings/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            alert('Settings saved successfully!');
+            // Reload dashboard to reflect changes
+            loadDashboard();
+        } else {
+            alert(result.error || 'Failed to save settings');
+        }
+    } catch (error) {
+        console.error('Error saving live settings:', error);
+        alert('Failed to save settings');
     }
 }
 
@@ -973,11 +1320,48 @@ function updatePollOptions() {
         input.id = `option${i}`;
         input.placeholder = `Option ${optionLabels[i-1]}`;
         if (i <= 2) input.required = true;
+        
+        // Add event listener to update dropdown when option text changes
+        input.addEventListener('input', updateCorrectAnswerDropdown);
+        
         container.appendChild(input);
         
         const option = document.createElement('option');
         option.value = i - 1;
         option.textContent = `Option ${optionLabels[i-1]}`;
+        option.id = `correctAnswerOption${i-1}`;
+        correctAnswerSelect.appendChild(option);
+    }
+}
+
+// Update correct answer dropdown to show actual option text
+function updateCorrectAnswerDropdown() {
+    const correctAnswerSelect = document.getElementById('correctAnswer');
+    const numOptions = parseInt(document.getElementById('numOptions').value);
+    const optionLabels = ['A', 'B', 'C', 'D', 'E'];
+    
+    // Keep the "No correct answer" option
+    const noAnswerOption = correctAnswerSelect.querySelector('option[value=""]');
+    correctAnswerSelect.innerHTML = '';
+    if (noAnswerOption) {
+        correctAnswerSelect.appendChild(noAnswerOption);
+    } else {
+        const noAnswer = document.createElement('option');
+        noAnswer.value = '';
+        noAnswer.textContent = 'No correct answer';
+        correctAnswerSelect.appendChild(noAnswer);
+    }
+    
+    // Update each option with actual text or fallback to "Option X"
+    for (let i = 1; i <= numOptions; i++) {
+        const input = document.getElementById(`option${i}`);
+        const optionText = input ? input.value.trim() : '';
+        const displayText = optionText || `Option ${optionLabels[i-1]}`;
+        
+        const option = document.createElement('option');
+        option.value = i - 1;
+        option.textContent = displayText;
+        option.id = `correctAnswerOption${i-1}`;
         correctAnswerSelect.appendChild(option);
     }
 }
@@ -995,6 +1379,14 @@ async function createPoll() {
     
     if (options.length < 2) {
         alert('Please provide at least 2 options');
+        return;
+    }
+    
+    // Check for duplicate options (case-insensitive)
+    const optionsLower = options.map(opt => opt.toLowerCase().trim());
+    const uniqueOptions = new Set(optionsLower);
+    if (uniqueOptions.size !== options.length) {
+        alert('Duplicate options are not allowed. Please ensure each option is unique.');
         return;
     }
     
@@ -1032,6 +1424,47 @@ async function stopPoll(pollId) {
     }
 }
 
+// Clear Live Metrics
+async function clearLiveMetrics(classId) {
+    if (!confirm('Are you sure you want to clear all live metrics (thumbs up, thumbs down, and participation counts)?')) {
+        return;
+    }
+    
+    try {
+        // Reset thumbs up
+        await fetch(`/api/reset_thumbs_up/${classId}`, {method: 'POST'});
+        // Reset thumbs down
+        await fetch(`/api/reset_thumbs_down/${classId}`, {method: 'POST'});
+        // Note: Participation count is calculated from session data, so it will reset naturally
+        
+        loadDashboard();
+    } catch (error) {
+        console.error('Error clearing live metrics:', error);
+        alert('Failed to clear live metrics');
+    }
+}
+
+// Clear Hands Raised
+async function clearHandsRaised(classId) {
+    if (!confirm('Are you sure you want to clear all raised hands?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/clear_hands_raised/${classId}`, {method: 'POST'});
+        const data = await response.json();
+        
+        if (data.success) {
+            loadDashboard();
+        } else {
+            alert(data.error || 'Failed to clear hands raised');
+        }
+    } catch (error) {
+        console.error('Error clearing hands raised:', error);
+        alert('Failed to clear hands raised');
+    }
+}
+
 // Clear Poll Data
 async function clearPollData(pollId) {
     if (!confirm('Are you sure you want to clear all poll data? This cannot be undone.')) return;
@@ -1045,6 +1478,8 @@ function showCreatePollModal() {
     const modal = new bootstrap.Modal(document.getElementById('createPollModal'));
     modal.show();
     updatePollOptions();
+    // Initialize dropdown with current option values after a short delay to ensure DOM is ready
+    setTimeout(updateCorrectAnswerDropdown, 100);
 }
 
 // Stop class

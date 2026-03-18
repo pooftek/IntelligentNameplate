@@ -2202,7 +2202,11 @@ def student_interaction():
         
         # Check if quiet mode is enabled
         settings = ClassSettings.query.filter_by(class_id=class_id).first()
-        if settings and settings.quiet_mode and interaction_type in ['hand_raise', 'thumbs_up', 'thumbs_down']:
+        allow_quiet = (
+            data.get('action') == 'auto_off'
+            and interaction_type in ('thumbs_up', 'thumbs_down')
+        )
+        if settings and settings.quiet_mode and interaction_type in ['hand_raise', 'thumbs_up', 'thumbs_down'] and not allow_quiet:
             return jsonify({'success': False, 'error': 'Quiet mode is enabled. Participation is disabled.'})
         
         today = datetime.utcnow().date()
@@ -2256,30 +2260,39 @@ def student_interaction():
                 db.session.add(hand_raise)
                 
         elif interaction_type == 'thumbs_up':
-            # Mutually exclusive with thumbs_down: only one can be "on" per student
             cu = participation.thumbs_up or 0
             cd = participation.thumbs_down or 0
-            if cu % 2 == 1 and cd % 2 == 1:
-                participation.thumbs_down = max(0, cd - 1)
-                cd = participation.thumbs_down
-            if cu % 2 == 1:
-                participation.thumbs_up = max(0, cu - 1)
+            if data.get('action') == 'auto_off':
+                # Client 10s timer: turn off only if still active (no toggle — avoids turning on by mistake)
+                if cu % 2 == 1:
+                    participation.thumbs_up = max(0, cu - 1)
             else:
-                if cd % 2 == 1:
+                # Mutually exclusive with thumbs_down: only one can be "on" per student
+                if cu % 2 == 1 and cd % 2 == 1:
                     participation.thumbs_down = max(0, cd - 1)
-                participation.thumbs_up = cu + 1
+                    cd = participation.thumbs_down
+                if cu % 2 == 1:
+                    participation.thumbs_up = max(0, cu - 1)
+                else:
+                    if cd % 2 == 1:
+                        participation.thumbs_down = max(0, cd - 1)
+                    participation.thumbs_up = cu + 1
         elif interaction_type == 'thumbs_down':
             cu = participation.thumbs_up or 0
             cd = participation.thumbs_down or 0
-            if cu % 2 == 1 and cd % 2 == 1:
-                participation.thumbs_up = max(0, cu - 1)
-                cu = participation.thumbs_up
-            if cd % 2 == 1:
-                participation.thumbs_down = max(0, cd - 1)
+            if data.get('action') == 'auto_off':
+                if cd % 2 == 1:
+                    participation.thumbs_down = max(0, cd - 1)
             else:
-                if cu % 2 == 1:
+                if cu % 2 == 1 and cd % 2 == 1:
                     participation.thumbs_up = max(0, cu - 1)
-                participation.thumbs_down = cd + 1
+                    cu = participation.thumbs_up
+                if cd % 2 == 1:
+                    participation.thumbs_down = max(0, cd - 1)
+                else:
+                    if cu % 2 == 1:
+                        participation.thumbs_up = max(0, cu - 1)
+                    participation.thumbs_down = cd + 1
         else:
             return jsonify({'success': False, 'error': 'Invalid interaction type'})
         

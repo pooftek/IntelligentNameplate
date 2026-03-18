@@ -270,39 +270,80 @@
             color: #000;
             border-bottom: 1px solid #e9ecef;
         }
+        /* Custom battery — faculty inactive-symbol grey (#6c757d), compact */
         .session-battery {
-            position: relative;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            padding: 0.2em 1.1em;
-            min-height: 3rem;
-        }
-        .session-battery .session-battery-back {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 4.25rem;
+            gap: 0;
+            flex-shrink: 0;
+            font-size: 1.15rem;
+            font-weight: 600;
             line-height: 1;
-            color: #000;
-            opacity: 0.2;
-            z-index: 0;
+        }
+        .session-battery-shell {
+            position: relative;
+            width: clamp(2.5rem, 9vw, 2.85rem);
+            height: clamp(1.32rem, 4.2vw, 1.48rem);
+            border: 1.5px solid #5a6268;
+            border-radius: 4px;
+            background: #6c757d;
+            overflow: hidden;
+            box-sizing: border-box;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        }
+        .session-battery.session-battery-low .session-battery-shell {
+            border-color: #b02a37;
+        }
+        .session-battery.session-battery-low .session-battery-fill {
+            background: #adb5bd;
+        }
+        .session-battery-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            max-width: 100%;
+            background: #adb5bd;
+            transition: width 0.35s ease;
             pointer-events: none;
+        }
+        .session-battery-pct {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin: 0;
+            padding: 0 3px 0 1px;
+            box-sizing: border-box;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            font-size: 1.15rem;
+            line-height: 1;
+            letter-spacing: -0.03em;
+            color: #fff;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
         }
-        .session-battery .session-battery-pct {
-            position: relative;
-            z-index: 1;
-            font-weight: 700;
-            font-size: 1.25rem;
-            line-height: 1.25;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
+        .session-battery-nub {
+            width: 3px;
+            height: 0.55rem;
+            margin-left: 1px;
+            background: #6c757d;
+            border: 1.5px solid #5a6268;
+            border-left: none;
+            border-radius: 0 3px 3px 0;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            align-self: center;
+        }
+        .session-battery.session-battery-low .session-battery-nub {
+            background: #6c757d;
+            border-color: #b02a37;
         }
         .session-center {
             flex: 1;
@@ -452,9 +493,12 @@
         <div class="back-inner-session panel-hidden" id="backSession">
             <div class="session-top">
                 <span id="sessionTime"></span>
-                <span class="session-battery" id="sessionBattery" title="Battery level">
-                    <i class="bi bi-battery-full session-battery-back" id="sessionBatteryIcon" aria-hidden="true"></i>
-                    <span class="session-battery-pct" id="sessionBatteryPct">100%</span>
+                <span class="session-battery" id="sessionBattery" title="Battery" role="img" aria-label="Battery level">
+                    <span class="session-battery-shell">
+                        <span class="session-battery-fill" id="sessionBatteryFill"></span>
+                        <span class="session-battery-pct" id="sessionBatteryPct">100</span>
+                    </span>
+                    <span class="session-battery-nub" aria-hidden="true"></span>
                 </span>
             </div>
             <div class="session-center">
@@ -951,6 +995,45 @@
         }
     }
 
+    var thumbAutoOffTimer = null;
+    var THUMB_ACTIVE_MS = 10000;
+
+    function clearThumbAutoOffTimer() {
+        if (thumbAutoOffTimer) {
+            clearTimeout(thumbAutoOffTimer);
+            thumbAutoOffTimer = null;
+        }
+    }
+
+    function applyThumbsUI(thumbsUpActive, thumbsDownActive) {
+        document.getElementById('btnThumbUp').classList.toggle('active', !!thumbsUpActive);
+        document.getElementById('btnThumbDown').classList.toggle('active', !!thumbsDownActive);
+    }
+
+    function scheduleThumbAutoOff(type) {
+        clearThumbAutoOffTimer();
+        thumbAutoOffTimer = setTimeout(function () {
+            thumbAutoOffTimer = null;
+            sendThumbsAutoOff(type);
+        }, THUMB_ACTIVE_MS);
+    }
+
+    async function sendThumbsAutoOff(type) {
+        if (!currentClassId || (type !== 'thumbs_up' && type !== 'thumbs_down')) return;
+        try {
+            const res = await fetch('/api/student/interaction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ class_id: currentClassId, type: type, action: 'auto_off' })
+            });
+            const data = await res.json();
+            if (data.success && typeof data.thumbs_up_active === 'boolean') {
+                applyThumbsUI(data.thumbs_up_active, data.thumbs_down_active);
+            }
+        } catch (e) {}
+    }
+
     async function refreshInteractionState() {
         if (!currentClassId) return;
         try {
@@ -958,8 +1041,13 @@
             const d = await res.json();
             if (d.success) {
                 document.getElementById('btnHand').classList.toggle('active', d.hand_raise_active);
-                document.getElementById('btnThumbUp').classList.toggle('active', d.thumbs_up_active);
-                document.getElementById('btnThumbDown').classList.toggle('active', d.thumbs_down_active);
+                applyThumbsUI(d.thumbs_up_active, d.thumbs_down_active);
+                clearThumbAutoOffTimer();
+                if (d.thumbs_up_active) {
+                    scheduleThumbAutoOff('thumbs_up');
+                } else if (d.thumbs_down_active) {
+                    scheduleThumbAutoOff('thumbs_down');
+                }
                 if (d.hand_raise_active) {
                     applyHandRaiseFrontTint();
                 }
@@ -969,6 +1057,9 @@
 
     async function sendInteraction(type) {
         if (!currentClassId) return;
+        if (type === 'thumbs_up' || type === 'thumbs_down') {
+            clearThumbAutoOffTimer();
+        }
         const res = await fetch('/api/student/interaction', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -987,8 +1078,12 @@
             }
             if (type === 'thumbs_up' || type === 'thumbs_down') {
                 if (typeof data.thumbs_up_active === 'boolean') {
-                    document.getElementById('btnThumbUp').classList.toggle('active', data.thumbs_up_active);
-                    document.getElementById('btnThumbDown').classList.toggle('active', data.thumbs_down_active);
+                    applyThumbsUI(data.thumbs_up_active, data.thumbs_down_active);
+                    if (data.thumbs_up_active) {
+                        scheduleThumbAutoOff('thumbs_up');
+                    } else if (data.thumbs_down_active) {
+                        scheduleThumbAutoOff('thumbs_down');
+                    }
                 }
             }
         } else {
@@ -1000,7 +1095,17 @@
     document.getElementById('btnThumbUp').addEventListener('click', () => sendInteraction('thumbs_up'));
     document.getElementById('btnThumbDown').addEventListener('click', () => sendInteraction('thumbs_down'));
 
+    function flushThumbsBeforeLeave() {
+        clearThumbAutoOffTimer();
+        if (!currentClassId) return;
+        var up = document.getElementById('btnThumbUp').classList.contains('active');
+        var dn = document.getElementById('btnThumbDown').classList.contains('active');
+        if (up) sendThumbsAutoOff('thumbs_up');
+        if (dn) sendThumbsAutoOff('thumbs_down');
+    }
+
     document.getElementById('btnSessionHome').addEventListener('click', async function () {
+        flushThumbsBeforeLeave();
         if (currentClassId) {
             await fetch('/api/student/leave_class', {
                 method: 'POST',
@@ -1024,6 +1129,7 @@
     });
 
     async function doLogout(withClass) {
+        flushThumbsBeforeLeave();
         await fetch('/api/student/logout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1062,24 +1168,30 @@
     setInterval(tickClock, 1000);
     tickClock();
 
-    function updateSessionBatteryUI(level) {
+    function updateSessionBatteryUI(level, charging) {
+        var wrap = document.getElementById('sessionBattery');
         var pctEl = document.getElementById('sessionBatteryPct');
-        var iconEl = document.getElementById('sessionBatteryIcon');
+        var fillEl = document.getElementById('sessionBatteryFill');
         if (!pctEl) return;
         var p = Math.round((level != null ? level : 1) * 100);
-        pctEl.textContent = p + '%';
-        if (iconEl) {
-            iconEl.className = 'bi session-battery-back ' + (p > 75 ? 'bi-battery-full' : p > 45 ? 'bi-battery-half' : p > 15 ? 'bi-battery-half' : 'bi-battery');
+        p = Math.max(0, Math.min(100, p));
+        pctEl.textContent = String(p);
+        if (fillEl) fillEl.style.width = p + '%';
+        if (wrap) {
+            wrap.classList.toggle('session-battery-low', p <= 15 && !charging);
+            wrap.title = charging ? 'Charging · ' + p : 'Battery · ' + p;
+            wrap.setAttribute('aria-label', 'Battery ' + p + (charging ? ', charging' : ''));
         }
     }
     if (navigator.getBattery) {
         navigator.getBattery().then(function (b) {
-            function upd() { updateSessionBatteryUI(b.level); }
+            function upd() { updateSessionBatteryUI(b.level, b.charging); }
             b.addEventListener('levelchange', upd);
+            b.addEventListener('chargingchange', upd);
             upd();
         });
     } else {
-        updateSessionBatteryUI(1);
+        updateSessionBatteryUI(1, false);
     }
 
     (async function initSession() {

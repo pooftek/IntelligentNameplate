@@ -2351,6 +2351,7 @@ def student_poll_response():
     db.session.add(response)
     db.session.commit()
     
+    has_key = poll.correct_answer is not None
     socketio.emit('poll_response', {
         'poll_id': poll_id,
         'student_id': student_id,
@@ -2359,7 +2360,13 @@ def student_poll_response():
         'is_anonymous': poll.is_anonymous
     }, room=f'class_{poll.class_id}')
     
-    return jsonify({'success': True, 'is_correct': is_correct})
+    return jsonify({
+        'success': True,
+        'is_correct': is_correct,
+        'has_correct_answer': has_key,
+        'correct_answer_index': poll.correct_answer,
+        'selected_index': answer,
+    })
 
 # Live Dashboard APIs
 @app.route('/api/live_dashboard/<int:class_id>')
@@ -2600,6 +2607,8 @@ def clear_hands_raised(class_id):
     ).update({'cleared': True})
     
     db.session.commit()
+    
+    socketio.emit('all_hands_cleared', {'class_id': class_id}, room=f'class_{class_id}')
     
     return jsonify({'success': True})
 

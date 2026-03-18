@@ -270,6 +270,40 @@
             color: #000;
             border-bottom: 1px solid #e9ecef;
         }
+        .session-battery {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.2em 1.1em;
+            min-height: 3rem;
+        }
+        .session-battery .session-battery-back {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4.25rem;
+            line-height: 1;
+            color: #000;
+            opacity: 0.2;
+            z-index: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .session-battery .session-battery-pct {
+            position: relative;
+            z-index: 1;
+            font-weight: 700;
+            font-size: 1.25rem;
+            line-height: 1.25;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
         .session-center {
             flex: 1;
             display: flex;
@@ -418,7 +452,10 @@
         <div class="back-inner-session panel-hidden" id="backSession">
             <div class="session-top">
                 <span id="sessionTime"></span>
-                <span id="sessionBattery">100%</span>
+                <span class="session-battery" id="sessionBattery" title="Battery level">
+                    <i class="bi bi-battery-full session-battery-back" id="sessionBatteryIcon" aria-hidden="true"></i>
+                    <span class="session-battery-pct" id="sessionBatteryPct">100%</span>
+                </span>
             </div>
             <div class="session-center">
                 <div class="session-center-inner">
@@ -524,31 +561,62 @@
         scheduleFitFrontName();
     }
 
-    /** Non-anonymous only: front + back poll area match selected option color */
+    /** Name + poll text always this colour (matches default nameplate) */
+    var STUDENT_DISPLAY_TEXT = '#212529';
+
+    /** Non-anonymous: background = faculty bar colour for correct option (if quiz has key), else selected option */
     function applyNonAnonymousAnswerColors(answerIndex) {
         var i = Math.max(0, Math.min(answerIndex, POLL_OPTION_BG.length - 1));
         var bg = POLL_OPTION_BG[i] || '#6c757d';
-        var fg = POLL_OPTION_BTN_FG[i] || '#ffffff';
         var fr = document.getElementById('npFront');
         var nameWrap = document.getElementById('frontNameWrap');
         var nameEl = document.getElementById('frontStudentName');
         if (fr) fr.style.setProperty('background', bg, 'important');
         if (nameWrap) nameWrap.style.setProperty('background', bg, 'important');
-        if (nameEl) nameEl.style.setProperty('color', fg, 'important');
+        if (nameEl) nameEl.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
         var pollFs = document.getElementById('backPollFullscreen');
         if (pollFs) pollFs.style.setProperty('background', bg, 'important');
         var pq = document.getElementById('backPollQuestion');
         if (pq) {
-            pq.style.setProperty('color', fg, 'important');
-            pq.style.setProperty('border-bottom-color', i === 2 ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.25)', 'important');
+            pq.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
+            pq.style.setProperty('border-bottom-color', 'rgba(0,0,0,0.12)', 'important');
         }
         var pd = document.getElementById('backPollSubmitted');
-        if (pd) pd.style.setProperty('color', fg, 'important');
+        if (pd) pd.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
         scheduleFitFrontName();
     }
 
     function pollIsAnonymous(p) {
         return p && (p.is_anonymous === true || p.is_anonymous === 1 || p.is_anonymous === '1' || String(p.is_anonymous).toLowerCase() === 'true');
+    }
+
+    var HAND_RAISE_FRONT_BG = '#ff9800';
+
+    function applyHandRaiseFrontTint() {
+        var fr = document.getElementById('npFront');
+        var nameWrap = document.getElementById('frontNameWrap');
+        var nameEl = document.getElementById('frontStudentName');
+        if (fr) fr.style.setProperty('background', HAND_RAISE_FRONT_BG, 'important');
+        if (nameWrap) nameWrap.style.setProperty('background', HAND_RAISE_FRONT_BG, 'important');
+        if (nameEl) nameEl.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
+        scheduleFitFrontName();
+    }
+
+    /** Front only — white nameplate (used when hand lowered or prof clears hands) */
+    function clearFrontNameplateInline() {
+        var fr = document.getElementById('npFront');
+        var nameWrap = document.getElementById('frontNameWrap');
+        var nameEl = document.getElementById('frontStudentName');
+        if (fr) {
+            fr.style.removeProperty('background');
+            fr.style.removeProperty('background-color');
+        }
+        if (nameWrap) {
+            nameWrap.style.removeProperty('background');
+            nameWrap.style.removeProperty('background-color');
+        }
+        if (nameEl) nameEl.style.removeProperty('color');
+        scheduleFitFrontName();
     }
 
     function showBackPollFullscreen(data) {
@@ -825,6 +893,15 @@
             currentPoll = null;
             hideBackPollUI();
             resetDefaultFrontPlate();
+            refreshInteractionState();
+        });
+        socket.on('all_hands_cleared', function (d) {
+            if (!currentClassId || !d || String(d.class_id) !== String(currentClassId)) return;
+            var handBtn = document.getElementById('btnHand');
+            if (handBtn && handBtn.classList.contains('active')) {
+                handBtn.classList.remove('active');
+                clearFrontNameplateInline();
+            }
         });
     }
 
@@ -854,7 +931,11 @@
             if (pollIsAnonymous(pollSnapshot)) {
                 resetDefaultFrontPlate();
             } else {
-                applyNonAnonymousAnswerColors(answerIndex);
+                var bgIdx = answerIndex;
+                if (data.has_correct_answer && data.correct_answer_index !== null && data.correct_answer_index !== undefined) {
+                    bgIdx = data.correct_answer_index;
+                }
+                applyNonAnonymousAnswerColors(bgIdx);
             }
         } else {
             var err = (data.error || '').toLowerCase();
@@ -879,6 +960,9 @@
                 document.getElementById('btnHand').classList.toggle('active', d.hand_raise_active);
                 document.getElementById('btnThumbUp').classList.toggle('active', d.thumbs_up_active);
                 document.getElementById('btnThumbDown').classList.toggle('active', d.thumbs_down_active);
+                if (d.hand_raise_active) {
+                    applyHandRaiseFrontTint();
+                }
             }
         } catch (e) {}
     }
@@ -893,7 +977,14 @@
         });
         const data = await res.json();
         if (data.success) {
-            if (type === 'hand_raise') document.getElementById('btnHand').classList.toggle('active', data.is_active);
+            if (type === 'hand_raise') {
+                document.getElementById('btnHand').classList.toggle('active', data.is_active);
+                if (data.is_active) {
+                    applyHandRaiseFrontTint();
+                } else {
+                    clearFrontNameplateInline();
+                }
+            }
             if (type === 'thumbs_up' || type === 'thumbs_down') {
                 if (typeof data.thumbs_up_active === 'boolean') {
                     document.getElementById('btnThumbUp').classList.toggle('active', data.thumbs_up_active);
@@ -971,15 +1062,24 @@
     setInterval(tickClock, 1000);
     tickClock();
 
+    function updateSessionBatteryUI(level) {
+        var pctEl = document.getElementById('sessionBatteryPct');
+        var iconEl = document.getElementById('sessionBatteryIcon');
+        if (!pctEl) return;
+        var p = Math.round((level != null ? level : 1) * 100);
+        pctEl.textContent = p + '%';
+        if (iconEl) {
+            iconEl.className = 'bi session-battery-back ' + (p > 75 ? 'bi-battery-full' : p > 45 ? 'bi-battery-half' : p > 15 ? 'bi-battery-half' : 'bi-battery');
+        }
+    }
     if (navigator.getBattery) {
-        navigator.getBattery().then(b => {
-            function upd() {
-                const el = document.getElementById('sessionBattery');
-                if (el) el.textContent = Math.round(b.level * 100) + '%';
-            }
+        navigator.getBattery().then(function (b) {
+            function upd() { updateSessionBatteryUI(b.level); }
             b.addEventListener('levelchange', upd);
             upd();
         });
+    } else {
+        updateSessionBatteryUI(1);
     }
 
     (async function initSession() {

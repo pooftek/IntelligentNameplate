@@ -3,910 +3,1004 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>Student Nameplate</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #000;
-            color: #fff;
-            overflow: hidden;
+        :root {
+            --western-purple: #4F2683;
+            --faculty-gradient: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
         }
-        .nameplate-container {
+        html, body {
+            margin: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .np-root {
             display: flex;
+            width: 100vw;
             height: 100vh;
         }
-        .screen {
+        .np-screen {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            min-width: 0;
+        }
+        .faculty-bg {
+            background: var(--faculty-gradient);
+            min-height: 100%;
+        }
+        .sleep-layer {
+            position: absolute;
+            inset: 0;
+            background: #000;
+            z-index: 50;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .np-root.state-login .sleep-layer,
+        .np-root.state-home .sleep-layer,
+        .np-root.state-session .sleep-layer {
+            display: none;
+        }
+        .panel-hidden { display: none !important; }
+
+        /* Faculty-matched login */
+        .back-inner-login {
+            zoom: 1.25;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            height: 100%;
+            padding-top: 15vh;
+            overflow-y: auto;
+        }
+        .login-title { font-size: clamp(1.75rem, 5vw, 2.5rem); font-weight: bold; }
+        .login-card {
+            width: clamp(300px, 90vw, 450px);
+            padding: clamp(30px, 5vw, 50px);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: none;
+        }
+        .login-subtitle { font-size: clamp(0.9rem, 2vw, 1rem); }
+        .btn-primary-gradient {
+            background: var(--faculty-gradient);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            color: #fff;
+        }
+        .btn-primary-gradient:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+
+        /* Front: blank login */
+        .front-login-blank { width: 100%; height: 100%; }
+
+        /* Name display (home + session front): black on white */
+        .np-root.state-home .np-front,
+        .np-root.state-session .np-front {
+            background: #fff !important;
+        }
+        .front-name-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            min-height: 100%;
+            padding: clamp(0.5rem, 2vmin, 1.25rem);
+            text-align: center;
+            background: #fff;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .front-name-display .name-text {
+            font-weight: bold;
+            color: #000;
+            line-height: 1.05;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            hyphens: auto;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            box-sizing: border-box;
+            display: block;
+        }
+
+        /* My Classes (faculty dashboard clone) */
+        .back-inner-home {
+            zoom: 1.25;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .dashboard-header { flex-shrink: 0; padding: 3rem 1rem 0; }
+        .dashboard-header .container { max-width: 1200px; margin: 0 auto; }
+        .responsive-title {
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: bold;
+            white-space: nowrap;
+            line-height: 1.2;
+            margin: 0;
+        }
+        .header-buttons { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
+        .header-buttons .btn { height: 38px; display: inline-flex; align-items: center; padding: 0.375rem 0.75rem; }
+        .dashboard-content {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+            padding: 1rem;
+            padding-bottom: clamp(4rem, 15vh, 8rem);
+        }
+        .dashboard-content::-webkit-scrollbar { width: 12px; }
+        .dashboard-content::-webkit-scrollbar-thumb { background: #2A1A40; border-radius: 6px; }
+        .row > [class*='col-'] { display: flex; padding-left: 20px; padding-right: 20px; }
+        .class-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            margin-bottom: clamp(30px, 5vw, 40px);
+            height: clamp(170px, 22vh, 200px);
+            min-height: 170px;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: none;
+        }
+        .class-card:active { transform: scale(0.98); }
+        .class-card .card-body {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            border: 2px solid #333;
+            justify-content: space-between;
+            overflow: hidden;
+            min-height: 0;
+        }
+        .class-card .card-title {
+            font-size: clamp(1.25rem, 2.8vw, 1.75rem);
+            font-weight: bold;
+            margin-bottom: 0;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.4;
+        }
+        .class-card .class-code {
+            font-size: clamp(0.875rem, 1.9vw, 1.125rem);
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .class-card .status-badge {
+            margin-top: auto;
+            align-self: flex-start;
+            font-size: clamp(0.7rem, 1.4vw, 0.8rem);
+            padding: clamp(0.2rem, 0.45vw, 0.35rem) clamp(0.45rem, 0.9vw, 0.7rem);
+        }
+        .class-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        /* In-class session back: white, larger title/code */
+        .back-inner-session {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            color: #212529;
             position: relative;
         }
-        .front-screen {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .back-screen {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        .sleep-mode {
+        /* Full-screen poll (back only) — matches faculty chart colors */
+        .back-poll-fs {
+            position: absolute;
+            inset: 0;
+            z-index: 60;
+            background: #fff;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .back-poll-fs .back-poll-q {
+            flex-shrink: 0;
+            padding: clamp(1rem, 3vw, 1.75rem) clamp(1rem, 3vw, 2rem);
+            font-size: clamp(1.35rem, 4.2vw, 2.25rem);
+            font-weight: 700;
+            color: #212529;
+            line-height: 1.25;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .back-poll-fs .back-poll-opts {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            gap: 0;
+        }
+        .back-poll-fs .poll-opt-btn {
+            flex: 1;
+            min-height: 3.5rem;
+            border: none;
+            font-size: clamp(1.15rem, 3.2vw, 1.85rem);
+            font-weight: 600;
+            padding: 0.75rem 1.25rem;
             cursor: pointer;
-        }
-        .login-screen {
-            display: none;
-        }
-        .login-screen.active {
+            transition: filter 0.12s ease, transform 0.08s ease;
+            text-align: center;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
+            touch-action: manipulation;
         }
-        .main-screen {
-            display: none;
+        .back-poll-fs .poll-opt-btn:active {
+            filter: brightness(0.92);
+            transform: scale(0.995);
         }
-        .main-screen.active {
+        .back-poll-fs .poll-opt-btn:disabled {
+            opacity: 0.85;
+            cursor: default;
+        }
+        .back-poll-fs .back-poll-done {
+            flex: 1;
             display: flex;
-            flex-direction: column;
-            height: 100%;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.25rem, 3.5vw, 1.75rem);
+            font-weight: 600;
+            color: #495057;
+            padding: 2rem;
+            text-align: center;
         }
-        .header {
+        .session-top {
+            flex-shrink: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
+            padding: 1rem 1.25rem;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #000;
+            border-bottom: 1px solid #e9ecef;
         }
-        .student-name {
-            font-size: 3rem;
-            font-weight: bold;
-            text-align: center;
+        .session-center {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 2rem 1.5rem;
+            min-height: 0;
+            background: #fff;
         }
-        .class-id {
-            font-size: 2rem;
-            font-weight: bold;
+        .session-center-inner {
             text-align: center;
-            margin-bottom: 20px;
+            max-width: 95%;
         }
-        .controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
+        .session-class-name {
+            font-size: clamp(2.75rem, 9vw, 5rem);
+            font-weight: bold;
+            color: var(--western-purple);
+            margin: 0;
+            line-height: 1.15;
+        }
+        .session-class-code {
+            font-size: clamp(1.75rem, 5vw, 3rem);
+            color: #000;
+            font-weight: 700;
+            margin-top: 1.25rem;
+            margin-bottom: 0;
+            letter-spacing: 0.02em;
+        }
+        .session-bottom {
+            flex-shrink: 0;
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.25rem 1.5rem;
+            gap: 1rem;
+            background: #fff;
+            border-top: 1px solid #e9ecef;
         }
-        .control-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            transition: all 0.3s;
-        }
-        .control-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: scale(1.1);
-        }
-        .signout-btn {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            background: rgba(220, 53, 69, 0.8);
-            color: white;
-        }
-        .poll-screen {
-            display: none;
-        }
-        .poll-screen.active {
+        .session-bottom-left, .session-bottom-right {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .btn-circle {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 0;
+            font-size: 1.35rem;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            touch-action: manipulation;
         }
-        .poll-option {
-            width: 80%;
-            padding: 30px;
-            margin: 15px 0;
-            border-radius: 15px;
-            background: rgba(255,255,255,0.2);
-            cursor: pointer;
-            text-align: center;
-            font-size: 1.5rem;
-            transition: all 0.3s;
+        .btn-circle:active { transform: scale(0.92); }
+        .btn-circle.hand {
+            border: 2px solid #000;
+            background: #fff;
+            color: #000;
         }
-        .poll-option:hover {
-            background: rgba(255,255,255,0.3);
-            transform: scale(1.05);
+        .btn-circle.hand.active { background: #212529; color: #fff; }
+        .btn-circle.thumb-up {
+            border: 2px solid #198754;
+            background: #fff;
+            color: #198754;
         }
-        .poll-option.selected {
-            background: rgba(40, 167, 69, 0.8);
+        .btn-circle.thumb-up.active { background: #198754; color: #fff; }
+        .btn-circle.thumb-down {
+            border: 2px solid #dc3545;
+            background: #fff;
+            color: #dc3545;
         }
-        .color-feedback {
-            animation: colorPulse 1s;
+        .btn-circle.thumb-down.active { background: #dc3545; color: #fff; }
+        .btn-circle.home-btn {
+            background: #000;
+            color: #fff;
+            border: none;
         }
-        @keyframes colorPulse {
-            0%, 100% { background: inherit; }
-            50% { background: rgba(40, 167, 69, 0.8); }
+        .btn-circle.logout-session {
+            background: #dc3545;
+            color: #fff;
+            border: none;
         }
-        .battery-indicator {
-            font-size: 1.2rem;
-        }
+        .empty-classes { color: rgba(255,255,255,0.85); text-align: center; padding: 2rem; }
     </style>
 </head>
 <body>
-    <div class="nameplate-container">
-        <!-- Front Screen (Facing Professor) -->
-        <div class="screen front-screen">
-            <div class="sleep-mode" id="frontSleep">
-                <i class="bi bi-power"></i> Tap to wake
-            </div>
-            
-            <div class="login-screen" id="frontLogin">
-                <h3>Student Login</h3>
-                <div class="mb-3">
-                    <label class="form-label text-white">Email</label>
-                    <input type="email" class="form-control" id="frontEmailInput" placeholder="Enter your email">
+<div class="np-root state-sleep" id="npRoot">
+    <!-- FRONT SCREEN -->
+    <section class="np-screen np-front faculty-bg" id="npFront">
+        <div class="sleep-layer" id="sleepFront" aria-label="Wake"></div>
+        <div class="front-login-blank panel-hidden" id="frontLoginBlank"></div>
+        <div class="front-name-display panel-hidden" id="frontNameWrap">
+            <div class="name-text" id="frontStudentName"></div>
+        </div>
+    </section>
+    <!-- BACK SCREEN -->
+    <section class="np-screen np-back faculty-bg" id="npBack">
+        <div class="sleep-layer" id="sleepBack" aria-label="Wake"></div>
+
+        <!-- LOGIN -->
+        <div class="back-inner-login panel-hidden" id="backLogin">
+            <div class="card login-card">
+                <div class="text-center mb-4">
+                    <h2 class="fw-bold login-title">Student Login</h2>
+                    <p class="text-muted login-subtitle">Welcome back!</p>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label text-white">Password</label>
-                    <input type="password" class="form-control" id="frontPasswordInput" placeholder="Enter your password">
-                </div>
-                <button class="btn btn-light w-100 mb-2" onclick="studentLogin()">Login with Email</button>
-                <div class="text-center text-white mb-2">OR</div>
-                <div class="mb-3">
-                    <input type="text" class="form-control" id="rfidInput" placeholder="Tap RFID card">
-                </div>
-                <button class="btn btn-light w-100 mb-2" onclick="studentLoginRfid()">Login with RFID</button>
-                <div class="text-center text-white mb-2 mt-3">OR</div>
-                <button class="btn btn-outline-light w-100" onclick="showRegisterModal()">Set Password / Register</button>
-            </div>
-            
-            <div class="main-screen" id="frontMain">
-                <div class="student-name" id="frontStudentName">Student Name</div>
-            </div>
-            
-            <div class="poll-screen" id="frontPoll">
-                <h4 id="pollQuestion">Question</h4>
-                <div id="frontPollOptions"></div>
+                <form id="studentLoginForm" autocomplete="on">
+                    <div class="mb-3">
+                        <label for="loginIdentifier" class="form-label">Student Number or Email</label>
+                        <input type="text" class="form-control" id="loginIdentifier" name="identifier" required autocomplete="username">
+                    </div>
+                    <div class="mb-3">
+                        <label for="loginPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="loginPassword" name="password" autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary-gradient w-100">Login</button>
+                </form>
+                <div id="loginError" class="alert alert-danger mt-3" style="display: none;"></div>
             </div>
         </div>
-        
-        <!-- Back Screen (Facing Student) -->
-        <div class="screen back-screen">
-            <div class="sleep-mode" id="backSleep">
-                <i class="bi bi-power"></i> Tap to wake
-            </div>
-            
-            <div class="login-screen" id="backLogin">
-                <h3>Student Login</h3>
-                <div class="mb-3">
-                    <label class="form-label text-white">Email</label>
-                    <input type="email" class="form-control" id="backEmailInput" placeholder="Enter your email">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label text-white">Password</label>
-                    <input type="password" class="form-control" id="backPasswordInput" placeholder="Enter your password">
-                </div>
-                <button class="btn btn-light w-100 mb-2" onclick="studentLogin()">Login with Email</button>
-                <div class="text-center text-white mb-2">OR</div>
-                <div class="mb-3">
-                    <input type="text" class="form-control" id="backRfidInput" placeholder="Tap RFID card">
-                </div>
-                <button class="btn btn-light w-100 mb-2" onclick="studentLoginRfid()">Login with RFID</button>
-                <div class="text-center text-white mb-2 mt-3">OR</div>
-                <button class="btn btn-outline-light w-100" onclick="showRegisterModal()">Set Password / Register</button>
-            </div>
-            
-            <div class="main-screen" id="backMain">
-                <div class="header">
-                    <div id="timeDisplay">00:00</div>
-                    <div class="battery-indicator">
-                        <i class="bi bi-battery-full"></i> <span id="batteryLevel">100%</span>
+
+        <!-- MY CLASSES -->
+        <div class="back-inner-home panel-hidden" id="backHome">
+            <div class="dashboard-header">
+                <div class="container">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h1 class="text-white responsive-title">My Classes</h1>
+                        <div class="header-buttons">
+                            <button type="button" class="btn btn-outline-light" id="btnLogoutHome">Logout</button>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="class-id" id="classIdDisplay">Class ID</div>
-                
-                <div class="controls">
-                    <button class="control-btn" id="handRaiseBtn" onclick="sendInteraction('hand_raise')" title="Raise Hand">
-                        <i class="bi bi-hand-index"></i>
-                    </button>
-                    <button class="control-btn" id="thumbsUpBtn" onclick="sendInteraction('thumbs_up')" title="Thumbs Up">
-                        <i class="bi bi-hand-thumbs-up"></i>
-                    </button>
-                    <button class="control-btn" id="thumbsDownBtn" onclick="sendInteraction('thumbs_down')" title="Thumbs Down">
-                        <i class="bi bi-hand-thumbs-down"></i>
-                    </button>
-                </div>
-                
-                <button class="signout-btn" onclick="signOut()" title="Sign Out">
-                    <i class="bi bi-power"></i>
-                </button>
             </div>
-            
-            <div class="poll-screen" id="backPoll">
-                <h4 id="backPollQuestion">Question</h4>
-                <div id="backPollOptions"></div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Register/Set Password Modal -->
-    <div class="modal fade" id="registerModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Set Your Password</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-muted">Enter your student number or email to find your account and set your password.</p>
-                    <form id="registerForm">
-                        <div class="mb-3">
-                            <label class="form-label" style="color: #000; font-weight: bold;">Student Number or Email <span style="color: red;">*</span></label>
-                            <input type="text" class="form-control" id="registerIdentifier" placeholder="Enter your 9-digit student number or email" required>
-                            <small class="form-text text-muted">Use the student number or email that was registered by your professor</small>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="findStudentForPassword()">Find Account</button>
+            <div class="dashboard-content">
+                <div class="container">
+                    <div class="row" id="classCardsRow"></div>
+                    <p class="empty-classes panel-hidden" id="emptyClassesMsg">No active classes available.</p>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Set Password Modal -->
-    <div class="modal fade" id="passwordModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Set Your Password</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-muted">Welcome! Please set a password for your account. You'll use this password along with your email to login in the future.</p>
-                    <form id="passwordForm">
-                        <div class="mb-3">
-                            <label class="form-label" style="color: #000; font-weight: bold;">Email</label>
-                            <input type="email" class="form-control" id="passwordEmail" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" style="color: #000; font-weight: bold;">Password <span style="color: red;">*</span></label>
-                            <input type="password" class="form-control" id="passwordInput" placeholder="At least 6 characters" required minlength="6">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" style="color: #000; font-weight: bold;">Confirm Password <span style="color: red;">*</span></label>
-                            <input type="password" class="form-control" id="passwordConfirmInput" placeholder="Re-enter your password" required minlength="6">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="setPassword()">Set Password</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Class Selection Modal -->
-    <div class="modal fade" id="classSelectModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Select Class</h5>
-                </div>
-                <div class="modal-body">
-                    <div id="classList"></div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
-    <script>
-        const socket = io();
-        let currentStudent = null;
-        let currentClassId = null;
-        let currentPoll = null;
-        let showFirstNameOnly = false;
-        
-        // Wake up screens
-        document.getElementById('frontSleep').addEventListener('click', () => {
-            document.getElementById('frontSleep').style.display = 'none';
-            document.getElementById('frontLogin').classList.add('active');
-        });
-        
-        document.getElementById('backSleep').addEventListener('click', () => {
-            document.getElementById('backSleep').style.display = 'none';
-            document.getElementById('backLogin').classList.add('active');
-        });
-        
-        // Enter key support for login forms
-        document.getElementById('frontEmailInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') studentLogin();
-        });
-        document.getElementById('frontPasswordInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') studentLogin();
-        });
-        document.getElementById('backEmailInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') studentLogin();
-        });
-        document.getElementById('backPasswordInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') studentLogin();
-        });
-        document.getElementById('rfidInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') studentLoginRfid();
-        });
-        document.getElementById('backRfidInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') studentLoginRfid();
-        });
-        document.getElementById('passwordInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') setPassword();
-        });
-        document.getElementById('passwordConfirmInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') setPassword();
-        });
-        
-        // Simulate RFID tap
-        function simulateRfidTap(rfidId) {
-            document.getElementById('rfidInput').value = rfidId;
-            document.getElementById('backRfidInput').value = rfidId;
-            studentLoginRfid();
+        <!-- IN-CLASS SESSION -->
+        <div class="back-inner-session panel-hidden" id="backSession">
+            <div class="session-top">
+                <span id="sessionTime"></span>
+                <span id="sessionBattery">100%</span>
+            </div>
+            <div class="session-center">
+                <div class="session-center-inner">
+                    <h2 class="session-class-name" id="sessionClassName"></h2>
+                    <p class="session-class-code" id="sessionClassCode"></p>
+                </div>
+            </div>
+            <div class="session-bottom">
+                <div class="session-bottom-left">
+                    <button type="button" class="btn btn-circle hand" id="btnHand" title="Raise hand" aria-label="Raise hand"><i class="bi bi-hand-index"></i></button>
+                    <button type="button" class="btn btn-circle thumb-up" id="btnThumbUp" title="Thumbs up" aria-label="Thumbs up"><i class="bi bi-hand-thumbs-up"></i></button>
+                    <button type="button" class="btn btn-circle thumb-down" id="btnThumbDown" title="Thumbs down" aria-label="Thumbs down"><i class="bi bi-hand-thumbs-down"></i></button>
+                </div>
+                <div class="session-bottom-right">
+                    <button type="button" class="btn btn-circle home-btn" id="btnSessionHome" title="Home" aria-label="Home"><i class="bi bi-house-fill"></i></button>
+                    <button type="button" class="btn btn-circle logout-session" id="btnSessionLogout" title="Logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></button>
+                </div>
+            </div>
+            <div id="backPollFullscreen" class="back-poll-fs panel-hidden" aria-live="polite">
+                <div class="back-poll-q" id="backPollQuestion"></div>
+                <div class="back-poll-opts" id="backPollOptions"></div>
+                <div id="backPollSubmitted" class="back-poll-done panel-hidden"></div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Create Password (first-time) -->
+<div class="modal fade" id="createPasswordModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Create Password</h5>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Choose a password for your account (min. 6 characters).</p>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" id="newPassword" autocomplete="new-password">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Confirm password</label>
+                    <input type="password" class="form-control" id="newPasswordConfirm" autocomplete="new-password">
+                </div>
+                <div id="createPwError" class="alert alert-danger py-2" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary-gradient fw-bold" id="btnSubmitPassword">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+<script>
+(function () {
+    const root = document.getElementById('npRoot');
+    let currentStudent = null;
+    let myClasses = [];
+    let currentClassId = null;
+    let currentClassMeta = null;
+    let socket = null;
+    let currentPoll = null;
+    /* Same order as faculty dashboard poll chart */
+    var POLL_OPTION_BG = ['#28a745', '#dc3545', '#ffc107', '#007bff', '#6c757d'];
+    var POLL_OPTION_BTN_FG = ['#ffffff', '#ffffff', '#212529', '#ffffff', '#ffffff'];
+
+    function hideBackPollUI() {
+        var el = document.getElementById('backPollFullscreen');
+        if (el) el.classList.add('panel-hidden');
+        var opts = document.getElementById('backPollOptions');
+        if (opts) { opts.innerHTML = ''; opts.classList.remove('panel-hidden'); }
+        var sub = document.getElementById('backPollSubmitted');
+        if (sub) { sub.classList.add('panel-hidden'); sub.textContent = ''; }
+    }
+
+    function resetDefaultFrontPlate() {
+        var fr = document.getElementById('npFront');
+        var nameWrap = document.getElementById('frontNameWrap');
+        var nameEl = document.getElementById('frontStudentName');
+        if (fr) {
+            fr.style.removeProperty('background');
+            fr.style.removeProperty('background-color');
         }
-        
-        // Update time
-        function updateTime() {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-            document.getElementById('timeDisplay').textContent = timeStr;
+        if (nameWrap) {
+            nameWrap.style.removeProperty('background');
+            nameWrap.style.removeProperty('background-color');
         }
-        setInterval(updateTime, 1000);
-        updateTime();
-        
-        // Simulate battery (for demo)
-        let batteryLevel = 100;
-        function updateBattery() {
-            batteryLevel = Math.max(20, batteryLevel - 0.01);
-            document.getElementById('batteryLevel').textContent = Math.round(batteryLevel) + '%';
+        if (nameEl) nameEl.style.removeProperty('color');
+        var pollFs = document.getElementById('backPollFullscreen');
+        if (pollFs) {
+            pollFs.style.removeProperty('background');
+            pollFs.style.removeProperty('background-color');
         }
-        setInterval(updateBattery, 60000);
-        
-        async function studentLogin() {
-            const email = document.getElementById('frontEmailInput').value || document.getElementById('backEmailInput').value;
-            const password = document.getElementById('frontPasswordInput').value || document.getElementById('backPasswordInput').value;
-            
-            if (!email || !password) {
-                alert('Please enter both email and password');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/student/login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        email: email,
-                        password: password
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                if (data.success) {
-                    if (data.needs_password) {
-                        // Student needs to set password
-                        if (data.student) {
-                            showPasswordModal(data.student);
-                        } else {
-                            alert('Error loading student information. Please try again.');
-                        }
-                    } else {
-                        if (data.student) {
-                            currentStudent = data.student;
-                            showClassSelection();
-                        } else {
-                            alert('Error loading student information. Please try again.');
-                        }
-                    }
-                } else {
-                    alert(data.error || 'Login failed');
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                alert('Error connecting to server. Please check your connection and try again.');
-            }
+        var pq = document.getElementById('backPollQuestion');
+        var pd = document.getElementById('backPollSubmitted');
+        if (pq) {
+            pq.style.removeProperty('color');
+            pq.style.removeProperty('border-bottom-color');
         }
-        
-        async function studentLoginRfid() {
-            const rfidInput = document.getElementById('rfidInput').value || document.getElementById('backRfidInput').value;
-            
-            if (!rfidInput) {
-                alert('Please tap your RFID card or enter RFID code');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/student/login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        rfid_card_id: rfidInput
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                if (data.success) {
-                    if (data.needs_password) {
-                        // Student needs to set password on first RFID login
-                        if (data.student) {
-                            showPasswordModal(data.student);
-                        } else {
-                            alert('Error loading student information. Please try again.');
-                        }
-                    } else {
-                        if (data.student) {
-                            currentStudent = data.student;
-                            showClassSelection();
-                        } else {
-                            alert('Error loading student information. Please try again.');
-                        }
-                    }
-                } else {
-                    alert(data.error || 'Login failed');
-                }
-            } catch (error) {
-                console.error('RFID login error:', error);
-                alert('Error connecting to server. Please check your connection and try again.');
-            }
+        if (pd) pd.style.removeProperty('color');
+        scheduleFitFrontName();
+    }
+
+    /** Non-anonymous only: front + back poll area match selected option color */
+    function applyNonAnonymousAnswerColors(answerIndex) {
+        var i = Math.max(0, Math.min(answerIndex, POLL_OPTION_BG.length - 1));
+        var bg = POLL_OPTION_BG[i] || '#6c757d';
+        var fg = POLL_OPTION_BTN_FG[i] || '#ffffff';
+        var fr = document.getElementById('npFront');
+        var nameWrap = document.getElementById('frontNameWrap');
+        var nameEl = document.getElementById('frontStudentName');
+        if (fr) fr.style.setProperty('background', bg, 'important');
+        if (nameWrap) nameWrap.style.setProperty('background', bg, 'important');
+        if (nameEl) nameEl.style.setProperty('color', fg, 'important');
+        var pollFs = document.getElementById('backPollFullscreen');
+        if (pollFs) pollFs.style.setProperty('background', bg, 'important');
+        var pq = document.getElementById('backPollQuestion');
+        if (pq) {
+            pq.style.setProperty('color', fg, 'important');
+            pq.style.setProperty('border-bottom-color', i === 2 ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.25)', 'important');
         }
-        
-        function showRegisterModal() {
-            document.getElementById('registerForm').reset();
-            const modal = new bootstrap.Modal(document.getElementById('registerModal'));
-            modal.show();
-        }
-        
-        async function findStudentForPassword() {
-            const identifier = document.getElementById('registerIdentifier').value.trim();
-            
-            if (!identifier) {
-                alert('Please enter your student number or email');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/student/find_for_password', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        identifier: identifier
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                if (data.success) {
-                    if (data.student) {
-                        // Check if password already set
-                        if (data.student.has_password) {
-                            alert('You already have a password set. Please use the login option instead.');
-                            bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
-                            return;
-                        }
-                        
-                        // Show password setup modal
-                        document.getElementById('passwordEmail').value = data.student.email;
-                        bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
-                        const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
-                        passwordModal.show();
-                    } else {
-                        alert('Student account not found. Please make sure you are registered in a class by your professor.');
-                    }
-                } else {
-                    alert(data.error || 'Student not found. Please make sure you are registered in a class by your professor.');
-                }
-            } catch (error) {
-                console.error('Error finding student:', error);
-                alert('Error connecting to server. Please check your connection and try again.');
-            }
-        }
-        
-        function showPasswordModal(student) {
-            document.getElementById('passwordEmail').value = student.email;
-            const modal = new bootstrap.Modal(document.getElementById('passwordModal'));
-            modal.show();
-        }
-        
-        async function setPassword() {
-            const password = document.getElementById('passwordInput').value;
-            const confirmPassword = document.getElementById('passwordConfirmInput').value;
-            
-            if (!password || !confirmPassword) {
-                alert('Please enter both password fields');
-                return;
-            }
-            
-            if (password !== confirmPassword) {
-                alert('Passwords do not match');
-                return;
-            }
-            
-            if (password.length < 6) {
-                alert('Password must be at least 6 characters long');
-                return;
-            }
-            
-            const response = await fetch('/api/student/set_password', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                credentials: 'include',
-                body: JSON.stringify({
-                    password: password,
-                    confirm_password: confirmPassword
-                })
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
-                // After setting password, proceed to class selection
-                // Use student data from the response
-                if (data.student) {
-                    currentStudent = data.student;
-                    showClassSelection();
-                } else {
-                    // Fallback: try to get student info from session
-                    try {
-                        const studentInfoResponse = await fetch('/api/student/current', {
-                            credentials: 'include'
-                        });
-                        if (studentInfoResponse.ok) {
-                            const studentInfo = await studentInfoResponse.json();
-                            if (studentInfo.success && studentInfo.student) {
-                                currentStudent = studentInfo.student;
-                                showClassSelection();
-                            } else {
-                                alert('Password set successfully! Please login again.');
-                                location.reload();
-                            }
-                        } else {
-                            alert('Password set successfully! Please login again.');
-                            location.reload();
-                        }
-                    } catch (error) {
-                        console.error('Error loading student:', error);
-                        alert('Password set successfully! Please login again.');
-                        location.reload();
-                    }
-                }
+        var pd = document.getElementById('backPollSubmitted');
+        if (pd) pd.style.setProperty('color', fg, 'important');
+        scheduleFitFrontName();
+    }
+
+    function pollIsAnonymous(p) {
+        return p && (p.is_anonymous === true || p.is_anonymous === 1 || p.is_anonymous === '1' || String(p.is_anonymous).toLowerCase() === 'true');
+    }
+
+    function showBackPollFullscreen(data) {
+        document.getElementById('backPollQuestion').textContent = data.question || 'Poll';
+        var optsEl = document.getElementById('backPollOptions');
+        var sub = document.getElementById('backPollSubmitted');
+        sub.classList.add('panel-hidden');
+        sub.textContent = '';
+        optsEl.classList.remove('panel-hidden');
+        optsEl.innerHTML = '';
+        (data.options || []).forEach(function (opt, i) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'poll-opt-btn';
+            b.style.backgroundColor = POLL_OPTION_BG[i] || '#6c757d';
+            b.style.color = POLL_OPTION_BTN_FG[i] || '#ffffff';
+            b.textContent = opt;
+            b.addEventListener('click', function () { submitPoll(i); });
+            optsEl.appendChild(b);
+        });
+        document.getElementById('backPollFullscreen').classList.remove('panel-hidden');
+    }
+
+    function setState(name) {
+        root.className = 'np-root state-' + name;
+    }
+
+    function wake() {
+        setState('login');
+        document.getElementById('frontLoginBlank').classList.remove('panel-hidden');
+        document.getElementById('backLogin').classList.remove('panel-hidden');
+        document.getElementById('frontNameWrap').classList.add('panel-hidden');
+        document.getElementById('backHome').classList.add('panel-hidden');
+        document.getElementById('backSession').classList.add('panel-hidden');
+    }
+
+    document.getElementById('sleepFront').addEventListener('pointerdown', wake);
+    document.getElementById('sleepBack').addEventListener('pointerdown', wake);
+
+    function displayName(showFirstOnly) {
+        if (!currentStudent) return '';
+        const first = (currentStudent.preferred_name || currentStudent.first_name || '').trim();
+        const last = (currentStudent.last_name || '').trim();
+        return showFirstOnly ? first : (first + ' ' + last).trim();
+    }
+
+    function fitFrontNameToScreen() {
+        const wrap = document.getElementById('frontNameWrap');
+        const el = document.getElementById('frontStudentName');
+        if (!wrap || !el || wrap.classList.contains('panel-hidden') || !el.textContent.trim()) return;
+        const cs = window.getComputedStyle(wrap);
+        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const maxW = Math.max(32, wrap.clientWidth - padX);
+        const maxH = Math.max(32, wrap.clientHeight - padY);
+        el.style.width = '100%';
+        el.style.maxWidth = maxW + 'px';
+        el.style.lineHeight = '1.05';
+        let lo = 12;
+        let hi = Math.min(Math.max(maxW, maxH) * 1.2, 900);
+        let best = lo;
+        for (let i = 0; i < 40; i++) {
+            if (hi - lo < 0.35) break;
+            const mid = (lo + hi) / 2;
+            el.style.fontSize = mid + 'px';
+            if (el.scrollWidth <= maxW + 1 && el.scrollHeight <= maxH + 1) {
+                best = mid;
+                lo = mid;
             } else {
-                alert(data.error || 'Failed to set password');
+                hi = mid;
             }
         }
-        
-        async function showClassSelection() {
-            try {
-                const response = await fetch('/api/student/classes', {
-                    credentials: 'include'
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const classes = await response.json();
-                
-                if (!Array.isArray(classes)) {
-                    console.error('Invalid response format:', classes);
-                    alert('Error loading classes. Please try again.');
-                    return;
-                }
-                
-                if (classes.length === 0) {
-                    alert('No active classes available');
-                    return;
-                }
-                
-                const classListDiv = document.getElementById('classList');
-                if (!classListDiv) {
-                    console.error('Class list div not found');
-                    alert('Error loading class selection. Please refresh the page.');
-                    return;
-                }
-                
-                classListDiv.innerHTML = classes.map(c => `
-                    <button class="btn btn-primary w-100 mb-2" onclick="joinClass(${c.id})">
-                        ${c.name} (${c.class_code})
-                    </button>
-                `).join('');
-                
-                const modal = new bootstrap.Modal(document.getElementById('classSelectModal'));
-                modal.show();
-            } catch (error) {
-                console.error('Error loading classes:', error);
-                alert('Error loading classes. Please try again.');
-            }
+        el.style.fontSize = best + 'px';
+    }
+
+    function scheduleFitFrontName() {
+        requestAnimationFrame(function () {
+            requestAnimationFrame(fitFrontNameToScreen);
+        });
+    }
+
+    function updateFrontName() {
+        const el = document.getElementById('frontStudentName');
+        if (!currentStudent) {
+            el.textContent = '';
+            el.style.fontSize = '';
+            return;
         }
-        
-        async function joinClass(classId) {
-            const response = await fetch('/api/student/join_class', {
+        if (currentClassMeta && typeof currentClassMeta.show_first_name_only === 'boolean') {
+            el.textContent = displayName(currentClassMeta.show_first_name_only);
+        } else {
+            const allFirst = myClasses.length && myClasses.every(c => c.show_first_name_only);
+            el.textContent = displayName(allFirst);
+        }
+        scheduleFitFrontName();
+    }
+
+    window.addEventListener('resize', function () {
+        if (!document.getElementById('frontNameWrap').classList.contains('panel-hidden')) {
+            scheduleFitFrontName();
+        }
+    });
+
+    document.getElementById('studentLoginForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const err = document.getElementById('loginError');
+        err.style.display = 'none';
+        const identifier = document.getElementById('loginIdentifier').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        try {
+            const res = await fetch('/api/student/login', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({class_id: classId})
+                body: JSON.stringify({ identifier, password })
             });
-            
-            const data = await response.json();
-            if (data.success) {
-                currentClassId = classId;
-                socket.emit('join_class', {class_id: classId});
-                showMainScreen();
-                bootstrap.Modal.getInstance(document.getElementById('classSelectModal')).hide();
-            } else {
-                alert(data.error || 'Failed to join class');
-            }
-        }
-        
-        function showMainScreen() {
-            document.getElementById('frontLogin').classList.remove('active');
-            document.getElementById('backLogin').classList.remove('active');
-            document.getElementById('frontMain').classList.add('active');
-            document.getElementById('backMain').classList.add('active');
-            
-            updateStudentName();
-            loadClassInfo();
-            checkInteractionStates();
-        }
-        
-        function updateStudentName() {
-            const name = showFirstNameOnly 
-                ? currentStudent.first_name 
-                : `${currentStudent.first_name} ${currentStudent.last_name}`;
-            document.getElementById('frontStudentName').textContent = name;
-        }
-        
-        async function loadClassInfo() {
-            // This would fetch class info, for now just show class ID
-            document.getElementById('classIdDisplay').textContent = `Class ID: ${currentClassId}`;
-        }
-        
-        // Track interaction states
-        let interactionStates = {
-            hand_raise: false,
-            thumbs_up: false,
-            thumbs_down: false
-        };
-        
-        async function sendInteraction(type) {
-            if (!currentClassId) {
-                console.error('No class ID - cannot send interaction');
-                alert('Not in a class. Please join a class first.');
+            const data = await res.json();
+            if (data.success && data.needs_password) {
+                currentStudent = data.student;
+                document.getElementById('loginPassword').value = '';
+                new bootstrap.Modal(document.getElementById('createPasswordModal')).show();
                 return;
             }
-            
-            try {
-                const response = await fetch('/api/student/interaction', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        class_id: currentClassId,
-                        type: type
-                    })
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    // Update interaction state
-                    interactionStates[type] = data.is_active || false;
-                    updateInteractionButton(type, interactionStates[type]);
-                    console.log('Interaction toggled:', type, 'Active:', interactionStates[type]);
-                } else {
-                    console.error('Interaction failed:', data.error);
-                    alert(data.error || 'Failed to send interaction');
-                }
-            } catch (error) {
-                console.error('Error sending interaction:', error);
-                alert('Error sending interaction. Please check console.');
+            if (data.success && data.student) {
+                currentStudent = data.student;
+                await enterHome();
+                return;
             }
+            err.textContent = data.error || 'Login failed';
+            err.style.display = 'block';
+        } catch (x) {
+            err.textContent = 'Connection error. Try again.';
+            err.style.display = 'block';
         }
-        
-        function updateInteractionButton(type, isActive) {
-            let btnId = '';
-            if (type === 'hand_raise') {
-                btnId = 'handRaiseBtn';
-            } else if (type === 'thumbs_up') {
-                btnId = 'thumbsUpBtn';
-            } else if (type === 'thumbs_down') {
-                btnId = 'thumbsDownBtn';
-            }
-            
-            const btn = document.getElementById(btnId);
-            if (btn) {
-                if (isActive) {
-                    btn.classList.add('active');
-                    btn.style.backgroundColor = 'rgba(40, 167, 69, 0.8)';
-                    btn.style.color = 'white';
-                } else {
-                    btn.classList.remove('active');
-                    btn.style.backgroundColor = '';
-                    btn.style.color = '';
-                }
-            }
+    });
+
+    document.getElementById('btnSubmitPassword').addEventListener('click', async function () {
+        const pw = document.getElementById('newPassword').value;
+        const pw2 = document.getElementById('newPasswordConfirm').value;
+        const errEl = document.getElementById('createPwError');
+        errEl.style.display = 'none';
+        if (pw.length < 6) {
+            errEl.textContent = 'Password must be at least 6 characters.';
+            errEl.style.display = 'block';
+            return;
         }
-        
-        // Check current interaction states when joining class
-        async function checkInteractionStates() {
-            if (!currentClassId) return;
-            
-            try {
-                // For hand raises, check if student has active hand raise
-                const response = await fetch(`/api/student/interaction_state/${currentClassId}`, {
-                    credentials: 'include'
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        interactionStates = {
-                            hand_raise: data.hand_raise_active || false,
-                            thumbs_up: data.thumbs_up_active || false,
-                            thumbs_down: data.thumbs_down_active || false
-                        };
-                        updateInteractionButton('hand_raise', interactionStates.hand_raise);
-                        updateInteractionButton('thumbs_up', interactionStates.thumbs_up);
-                        updateInteractionButton('thumbs_down', interactionStates.thumbs_down);
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking interaction states:', error);
-            }
+        if (pw !== pw2) {
+            errEl.textContent = 'Passwords do not match.';
+            errEl.style.display = 'block';
+            return;
         }
-        
-        async function signOut() {
-            if (confirm('Are you sure you want to sign out?')) {
-                // Log leave time if in a class
-                if (currentClassId) {
-                    try {
-                        await fetch('/api/student/logout', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            credentials: 'include',
-                            body: JSON.stringify({
-                                class_id: currentClassId
-                            })
-                        });
-                    } catch (error) {
-                        console.error('Error logging out:', error);
-                    }
-                }
-                currentStudent = null;
-                currentClassId = null;
-                location.reload();
-            }
+        const res = await fetch('/api/student/set_password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ password: pw, confirm_password: pw2 })
+        });
+        const data = await res.json();
+        if (data.success && data.student) {
+            bootstrap.Modal.getInstance(document.getElementById('createPasswordModal')).hide();
+            currentStudent = Object.assign({}, currentStudent, data.student);
+            document.getElementById('newPassword').value = '';
+            document.getElementById('newPasswordConfirm').value = '';
+            await enterHome();
+        } else {
+            errEl.textContent = data.error || 'Failed to save password';
+            errEl.style.display = 'block';
         }
-        
-        
-        // Socket events
-        socket.on('settings_updated', (data) => {
-            showFirstNameOnly = data.show_first_name_only;
-            if (currentStudent) {
-                updateStudentName();
+    });
+
+    async function loadClasses() {
+        const res = await fetch('/api/student/classes', { credentials: 'include' });
+        if (res.status === 401) {
+            wake();
+            document.getElementById('loginError').textContent = 'Session expired. Please log in again.';
+            document.getElementById('loginError').style.display = 'block';
+            return [];
+        }
+        const data = await res.json();
+        if (data.success === false) return [];
+        return Array.isArray(data) ? data : [];
+    }
+
+    function renderClassCards() {
+        const row = document.getElementById('classCardsRow');
+        const empty = document.getElementById('emptyClassesMsg');
+        row.innerHTML = '';
+        if (!myClasses.length) {
+            empty.classList.remove('panel-hidden');
+            return;
+        }
+        empty.classList.add('panel-hidden');
+        myClasses.forEach(c => {
+            const col = document.createElement('div');
+            col.className = 'col-md-4';
+            col.innerHTML = `
+                <div class="card class-card" data-class-id="${c.id}">
+                    <div class="card-body">
+                        <div style="flex:1;"><h5 class="card-title">${escapeHtml(c.name)}</h5></div>
+                        <div style="margin-top:auto;">
+                            <p class="class-code text-muted" style="margin-bottom:0.5rem;">${escapeHtml(c.class_code)}</p>
+                            <span class="badge bg-success status-badge">Active</span>
+                        </div>
+                    </div>
+                </div>`;
+            col.querySelector('.class-card').addEventListener('click', () => joinClassSession(c));
+            row.appendChild(col);
+        });
+    }
+
+    function escapeHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    async function enterHome() {
+        myClasses = await loadClasses();
+        setState('home');
+        document.getElementById('frontLoginBlank').classList.add('panel-hidden');
+        document.getElementById('backLogin').classList.add('panel-hidden');
+        document.getElementById('frontNameWrap').classList.remove('panel-hidden');
+        document.getElementById('backHome').classList.remove('panel-hidden');
+        document.getElementById('backSession').classList.add('panel-hidden');
+        currentClassId = null;
+        currentClassMeta = null;
+        disconnectSocket();
+        updateFrontName();
+        renderClassCards();
+    }
+
+    async function joinClassSession(c) {
+        const res = await fetch('/api/student/join_class', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ class_id: c.id })
+        });
+        const data = await res.json();
+        if (!data.success) {
+            alert(data.error || 'Could not join class');
+            return;
+        }
+        currentClassId = c.id;
+        currentClassMeta = { ...c };
+        connectSocket();
+        socket.emit('join_class', { class_id: c.id });
+        setState('session');
+        document.getElementById('backHome').classList.add('panel-hidden');
+        document.getElementById('backSession').classList.remove('panel-hidden');
+        document.getElementById('sessionClassName').textContent = c.name;
+        document.getElementById('sessionClassCode').textContent = c.class_code;
+        updateFrontName();
+        refreshInteractionState();
+    }
+
+    function connectSocket() {
+        if (socket && socket.connected) return;
+        socket = io({ transports: ['websocket', 'polling'] });
+        socket.on('settings_updated', function (d) {
+            if (!currentClassMeta || currentClassId == null) return;
+            if (typeof d.show_first_name_only === 'boolean') {
+                currentClassMeta.show_first_name_only = d.show_first_name_only;
+                updateFrontName();
             }
         });
-        
-        socket.on('poll_started', (data) => {
+        socket.on('poll_started', function (data) {
+            if (!data || !currentClassId) return;
             currentPoll = data;
-            showPollScreen(data);
+            resetDefaultFrontPlate();
+            showBackPollFullscreen(data);
         });
-        
-        socket.on('poll_stopped', () => {
+        socket.on('poll_stopped', function () {
             currentPoll = null;
-            hidePollScreen();
+            hideBackPollUI();
+            resetDefaultFrontPlate();
         });
-        
-        function showPollScreen(pollData) {
-            document.getElementById('frontMain').classList.remove('active');
-            document.getElementById('backMain').classList.remove('active');
-            document.getElementById('frontPoll').classList.add('active');
-            document.getElementById('backPoll').classList.add('active');
-            
-            document.getElementById('pollQuestion').textContent = pollData.question;
-            document.getElementById('backPollQuestion').textContent = pollData.question;
-            
-            const frontOptions = document.getElementById('frontPollOptions');
-            const backOptions = document.getElementById('backPollOptions');
-            
-            frontOptions.innerHTML = pollData.options.map((opt, idx) => `
-                <div class="poll-option" onclick="selectPollAnswer(${idx})">${opt}</div>
-            `).join('');
-            
-            backOptions.innerHTML = pollData.options.map((opt, idx) => `
-                <div class="poll-option" onclick="selectPollAnswer(${idx})">${opt}</div>
-            `).join('');
+    }
+
+    function disconnectSocket() {
+        if (socket) {
+            try { socket.disconnect(); } catch (e) {}
+            socket = null;
         }
-        
-        function hidePollScreen() {
-            document.getElementById('frontPoll').classList.remove('active');
-            document.getElementById('backPoll').classList.remove('active');
-            document.getElementById('frontMain').classList.add('active');
-            document.getElementById('backMain').classList.add('active');
-        }
-        
-        async function selectPollAnswer(answerIndex) {
-            if (!currentPoll || !currentClassId) return;
-            
-            const response = await fetch('/api/student/poll_response', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                credentials: 'include',
-                body: JSON.stringify({
-                    poll_id: currentPoll.poll_id,
-                    answer: answerIndex
-                })
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                // Show color feedback if not anonymous
-                if (!currentPoll.is_anonymous) {
-                    const color = data.is_correct ? '#28a745' : '#dc3545';
-                    document.querySelectorAll('.screen').forEach(screen => {
-                        screen.style.background = color;
-                        setTimeout(() => {
-                            screen.style.background = '';
-                        }, 1000);
-                    });
-                }
-                
-                // Disable options
-                document.querySelectorAll('.poll-option').forEach(opt => {
-                    opt.style.pointerEvents = 'none';
-                    if (opt.textContent === currentPoll.options[answerIndex]) {
-                        opt.classList.add('selected');
-                    }
-                });
+    }
+
+    async function submitPoll(answerIndex) {
+        if (!currentPoll || !currentClassId) return;
+        var pollSnapshot = currentPoll;
+        var res = await fetch('/api/student/poll_response', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ poll_id: pollSnapshot.poll_id, answer: answerIndex })
+        });
+        var data = await res.json();
+        if (data.success) {
+            document.querySelectorAll('#backPollOptions .poll-opt-btn').forEach(function (b) { b.disabled = true; });
+            document.getElementById('backPollOptions').classList.add('panel-hidden');
+            var sub = document.getElementById('backPollSubmitted');
+            sub.textContent = 'Response recorded.';
+            sub.classList.remove('panel-hidden');
+            if (pollIsAnonymous(pollSnapshot)) {
+                resetDefaultFrontPlate();
+            } else {
+                applyNonAnonymousAnswerColors(answerIndex);
+            }
+        } else {
+            var err = (data.error || '').toLowerCase();
+            if (err.indexOf('already') !== -1) {
+                document.querySelectorAll('#backPollOptions .poll-opt-btn').forEach(function (b) { b.disabled = true; });
+                document.getElementById('backPollOptions').classList.add('panel-hidden');
+                document.getElementById('backPollSubmitted').textContent = 'You already responded.';
+                document.getElementById('backPollSubmitted').classList.remove('panel-hidden');
+                resetDefaultFrontPlate();
+            } else {
+                alert(data.error || 'Could not submit');
             }
         }
-        
-        // Demo: Simulate RFID tap for testing
-        // Uncomment to test: simulateRfidTap('RFID123');
-    </script>
+    }
+
+    async function refreshInteractionState() {
+        if (!currentClassId) return;
+        try {
+            const res = await fetch('/api/student/interaction_state/' + currentClassId, { credentials: 'include' });
+            const d = await res.json();
+            if (d.success) {
+                document.getElementById('btnHand').classList.toggle('active', d.hand_raise_active);
+                document.getElementById('btnThumbUp').classList.toggle('active', d.thumbs_up_active);
+                document.getElementById('btnThumbDown').classList.toggle('active', d.thumbs_down_active);
+            }
+        } catch (e) {}
+    }
+
+    async function sendInteraction(type) {
+        if (!currentClassId) return;
+        const res = await fetch('/api/student/interaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ class_id: currentClassId, type })
+        });
+        const data = await res.json();
+        if (data.success) {
+            if (type === 'hand_raise') document.getElementById('btnHand').classList.toggle('active', data.is_active);
+            if (type === 'thumbs_up' || type === 'thumbs_down') {
+                if (typeof data.thumbs_up_active === 'boolean') {
+                    document.getElementById('btnThumbUp').classList.toggle('active', data.thumbs_up_active);
+                    document.getElementById('btnThumbDown').classList.toggle('active', data.thumbs_down_active);
+                }
+            }
+        } else {
+            alert(data.error || 'Action failed');
+        }
+    }
+
+    document.getElementById('btnHand').addEventListener('click', () => sendInteraction('hand_raise'));
+    document.getElementById('btnThumbUp').addEventListener('click', () => sendInteraction('thumbs_up'));
+    document.getElementById('btnThumbDown').addEventListener('click', () => sendInteraction('thumbs_down'));
+
+    document.getElementById('btnSessionHome').addEventListener('click', async function () {
+        if (currentClassId) {
+            await fetch('/api/student/leave_class', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ class_id: currentClassId })
+            });
+            if (socket) socket.emit('leave_class', { class_id: currentClassId });
+        }
+        currentClassId = null;
+        currentClassMeta = null;
+        currentPoll = null;
+        hideBackPollUI();
+        resetDefaultFrontPlate();
+        myClasses = await loadClasses();
+        setState('home');
+        document.getElementById('backSession').classList.add('panel-hidden');
+        document.getElementById('backHome').classList.remove('panel-hidden');
+        updateFrontName();
+        renderClassCards();
+    });
+
+    async function doLogout(withClass) {
+        await fetch('/api/student/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(withClass && currentClassId ? { class_id: currentClassId } : {})
+        });
+        if (socket && currentClassId) try { socket.emit('leave_class', { class_id: currentClassId }); } catch (e) {}
+        disconnectSocket();
+        hideBackPollUI();
+        resetDefaultFrontPlate();
+        currentStudent = null;
+        currentClassId = null;
+        currentClassMeta = null;
+        myClasses = [];
+        currentPoll = null;
+        document.getElementById('loginIdentifier').value = '';
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('loginError').style.display = 'none';
+        document.getElementById('frontNameWrap').classList.add('panel-hidden');
+        document.getElementById('backHome').classList.add('panel-hidden');
+        document.getElementById('backSession').classList.add('panel-hidden');
+        document.getElementById('frontLoginBlank').classList.add('panel-hidden');
+        document.getElementById('backLogin').classList.add('panel-hidden');
+        setState('sleep');
+    }
+
+    document.getElementById('btnLogoutHome').addEventListener('click', () => doLogout(false));
+    document.getElementById('btnSessionLogout').addEventListener('click', () => doLogout(true));
+
+    function tickClock() {
+        const now = new Date();
+        const t = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const el = document.getElementById('sessionTime');
+        if (el) el.textContent = t;
+    }
+    setInterval(tickClock, 1000);
+    tickClock();
+
+    if (navigator.getBattery) {
+        navigator.getBattery().then(b => {
+            function upd() {
+                const el = document.getElementById('sessionBattery');
+                if (el) el.textContent = Math.round(b.level * 100) + '%';
+            }
+            b.addEventListener('levelchange', upd);
+            upd();
+        });
+    }
+
+    (async function initSession() {
+        try {
+            const r = await fetch('/api/student/current', { credentials: 'include' });
+            const d = await r.json();
+            if (d.success && d.student) {
+                currentStudent = d.student;
+                myClasses = await loadClasses();
+                setState('home');
+                document.getElementById('frontLoginBlank').classList.add('panel-hidden');
+                document.getElementById('backLogin').classList.add('panel-hidden');
+                document.getElementById('frontNameWrap').classList.remove('panel-hidden');
+                document.getElementById('backHome').classList.remove('panel-hidden');
+                document.getElementById('backSession').classList.add('panel-hidden');
+                updateFrontName();
+                renderClassCards();
+            }
+        } catch (e) {}
+    })();
+})();
+</script>
 </body>
 </html>
-

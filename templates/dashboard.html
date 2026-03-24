@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Classroom App{% endblock %}
+{% block title %}Comet — Dashboard{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -64,12 +64,12 @@
     }
     
     .dashboard-content::-webkit-scrollbar-thumb {
-        background: #2A1A40;
+        background: var(--scrollbar-thumb);
         border-radius: 6px;
     }
-    
+
     .dashboard-content::-webkit-scrollbar-thumb:hover {
-        background: #3B2556;
+        background: var(--scrollbar-hover);
     }
     
     .responsive-title {
@@ -329,12 +329,39 @@ async function savePreferences() {
         show_first_name_only: document.getElementById('prefShowFirstNameOnly').checked,
         quiet_mode: document.getElementById('prefQuietMode').checked
     };
-    
-    // TODO: Add API endpoint to save global preferences
-    // For now, just show a success message and close modal
-    bootstrap.Modal.getInstance(document.getElementById('preferencesModal')).hide();
-    alert('Preferences saved!');
+    const btn = document.querySelector('#preferencesModal .btn-primary');
+    await withLoading(btn, async () => {
+        const response = await fetch('/api/preferences', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        bootstrap.Modal.getInstance(document.getElementById('preferencesModal')).hide();
+        if (result.success) {
+            showToast('Preferences saved successfully.');
+        } else {
+            showToast(result.error || 'Failed to save preferences.', 'danger');
+        }
+    });
 }
+
+// Load preferences when modal opens
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('preferencesModal');
+    if (modal) {
+        modal.addEventListener('show.bs.modal', async () => {
+            try {
+                const resp = await fetch('/api/preferences');
+                const data = await resp.json();
+                if (data.success) {
+                    document.getElementById('prefShowFirstNameOnly').checked = data.show_first_name_only;
+                    document.getElementById('prefQuietMode').checked = data.quiet_mode;
+                }
+            } catch (e) { /* silently ignore */ }
+        });
+    }
+});
 </script>
 {% endblock %}
 

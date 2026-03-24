@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Live Class Dashboard - {{ class_obj.name }}{% endblock %}
+{% block title %}Comet — Live: {{ class_obj.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -9,9 +9,9 @@
         height: 100vh;
         overflow: hidden;
         margin: 0;
-        background: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
+        background: var(--bg-gradient);
     }
-    
+
     .dashboard-container {
         height: 100vh;
         display: flex;
@@ -21,7 +21,7 @@
     
     .dashboard-header {
         flex-shrink: 0;
-        padding: 1.5rem 2rem;
+        padding: clamp(0.5rem, 1.5vh, 1.5rem) clamp(0.75rem, 2vw, 2rem);
         background: transparent;
     }
     
@@ -33,7 +33,7 @@
     }
     
     .responsive-title {
-        font-size: clamp(2rem, 6vw, 4rem);
+        font-size: clamp(1.25rem, 3vw, 2.5rem);
         font-weight: bold;
         color: white;
         margin: 0;
@@ -46,38 +46,24 @@
     
     .dashboard-content {
         flex: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
+        overflow: hidden;
         min-height: 0;
-        padding: 1.5rem 2rem;
-    }
-    
-    .dashboard-content::-webkit-scrollbar {
-        width: 12px;
-    }
-    
-    .dashboard-content::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    
-    .dashboard-content::-webkit-scrollbar-thumb {
-        background: #2A1A40;
-        border-radius: 6px;
-    }
-    
-    .dashboard-content::-webkit-scrollbar-thumb:hover {
-        background: #3B2556;
+        padding: clamp(0.5rem, 1.5vh, 1.5rem) clamp(0.75rem, 2vw, 2rem);
+        display: flex;
+        flex-direction: column;
     }
     
     /* Light grey background container */
     .card-base {
-        background-color: #e5e7eb; /* Lighter grey base for brighter look */
+        background-color: #e5e7eb;
         border-radius: 20px;
-        padding: 1.5rem;
+        padding: clamp(0.5rem, 1.5vh, 1.5rem);
         box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        height: 100%;
+        flex: 1;
+        min-height: 0;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
     
     /* Tab navigation - positioned above white card */
@@ -125,15 +111,17 @@
     
     /* White card container for tab content - unified with tab (Google Chrome style) */
     .tab-content-card {
-        background-color: #ffffff; /* Unified white background */
-        padding: 2rem;
+        background-color: #ffffff;
+        padding: clamp(0.75rem, 1.5vh, 2rem);
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         flex: 1;
-        overflow-y: auto;
+        overflow: hidden;
         min-height: 0;
-        margin-top: -1px; /* Connect seamlessly with active tab */
+        margin-top: -1px;
         position: relative;
-        border-radius: 0 12px 12px 0; /* Straight left side, rounded right and bottom corners */
+        border-radius: 0 12px 12px 0;
+        display: flex;
+        flex-direction: column;
     }
     
     /* When first tab is active, keep left side straight */
@@ -146,10 +134,23 @@
         border-radius: 12px 12px 12px 0; /* Filleted top-left, rounded right and bottom corners */
     }
     
-    /* Ensure tab content is above the pseudo-element */
+    /* Ensure tab content is above the pseudo-element and fills card */
     .tab-content {
         position: relative;
         z-index: 1;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    #dashboardContent, #attendanceContent, #settingsContent {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
     
     .tab-content-card::-webkit-scrollbar {
@@ -174,31 +175,33 @@
     .metrics-container {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        margin-bottom: 1.5rem;
+        gap: clamp(0.5rem, 1vh, 1.5rem);
+        margin-bottom: clamp(0.5rem, 1vh, 1.5rem);
     }
     
     /* Override grid positioning for metric cards inside metrics-container (attendance tab) */
     .metrics-container .metric-card {
         grid-row: auto;
         grid-column: auto;
-        min-height: 500px; /* Ensure cards have minimum height and are always visible */
-        height: 100%; /* Make cards fill available height */
+        min-height: 0;
+        overflow: hidden;
     }
-    
+
     /* Ensure attendance tab content displays both cards properly */
     #attendanceContent {
         display: flex;
         flex-direction: column;
         height: 100%;
+        min-height: 0;
     }
-    
+
     #attendanceContent .metrics-container {
         flex: 1;
+        min-height: 0;
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        align-items: stretch; /* Make both cards same height */
+        gap: 1rem;
+        align-items: stretch;
     }
     
     /* Dashboard layout: Grid with Live Metrics top-left, Poll Statistics bottom-left, Hands Raised full height right */
@@ -206,8 +209,10 @@
         display: grid;
         grid-template-columns: 3fr 1fr;
         grid-template-rows: auto 1fr;
-        gap: 1.5rem;
-        height: 100%;
+        gap: clamp(0.5rem, 1vh, 1.5rem);
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
     }
     
     .top-section {
@@ -271,10 +276,10 @@
     }
     
     .metric-value {
-        font-size: 2.5rem;
+        font-size: clamp(1.25rem, 3vh, 2.5rem);
         font-weight: bold;
         color: #2d2d2d;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.25rem;
     }
     
     .metric-label {
@@ -315,13 +320,13 @@
     }
     
     .live-metric-value {
-        font-size: 2.5rem;
+        font-size: clamp(1.25rem, 3vh, 2.5rem);
         font-weight: bold;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.25rem;
     }
-    
+
     .live-metric-label {
-        font-size: 1.125rem;
+        font-size: clamp(0.7rem, 1.2vh, 1.125rem);
         font-weight: 500;
     }
     
@@ -487,9 +492,10 @@
     }
     
     .btn-start-poll {
-        background: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
+        background: var(--comet-blue);
         border: none;
-        color: white;
+        color: var(--comet-navy);
+        font-weight: 700;
         font-size: 0.875rem;
         font-weight: 600;
         padding: 0.375rem 1rem;
@@ -1291,15 +1297,15 @@ async function saveLiveSettings() {
         
         const result = await response.json();
         if (result.success) {
-            alert('Settings saved successfully!');
+            showToast('Settings saved successfully.');
             // Reload dashboard to reflect changes
             loadDashboard();
         } else {
-            alert(result.error || 'Failed to save settings');
+            showToast(result.error || 'Failed to save settings', 'danger');
         }
     } catch (error) {
         console.error('Error saving live settings:', error);
-        alert('Failed to save settings');
+        showToast('Failed to save settings', 'danger');
     }
 }
 
@@ -1378,7 +1384,7 @@ async function createPoll() {
     }
     
     if (options.length < 2) {
-        alert('Please provide at least 2 options');
+        showToast('Please provide at least 2 options.', 'warning');
         return;
     }
     
@@ -1386,7 +1392,7 @@ async function createPoll() {
     const optionsLower = options.map(opt => opt.toLowerCase().trim());
     const uniqueOptions = new Set(optionsLower);
     if (uniqueOptions.size !== options.length) {
-        alert('Duplicate options are not allowed. Please ensure each option is unique.');
+        showToast('Duplicate options are not allowed. Please ensure each option is unique.', 'warning');
         return;
     }
     
@@ -1411,7 +1417,7 @@ async function createPoll() {
         bootstrap.Modal.getInstance(document.getElementById('createPollModal')).hide();
         loadDashboard();
     } else {
-        alert(data.error || 'Failed to create poll');
+        showToast(data.error || 'Failed to create poll', 'danger');
     }
 }
 
@@ -1426,7 +1432,7 @@ async function stopPoll(pollId) {
 
 // Clear Live Metrics
 async function clearLiveMetrics(classId) {
-    if (!confirm('Are you sure you want to clear all live metrics (thumbs up, thumbs down, and participation counts)?')) {
+    if (!await showConfirm('Clear all live metrics (thumbs up, thumbs down, and participation counts)?')) {
         return;
     }
     
@@ -1440,7 +1446,7 @@ async function clearLiveMetrics(classId) {
         loadDashboard();
     } catch (error) {
         console.error('Error clearing live metrics:', error);
-        alert('Failed to clear live metrics');
+        showToast('Failed to clear live metrics', 'danger');
     }
 }
 
@@ -1457,20 +1463,31 @@ async function clearHandsRaised(classId) {
         if (data.success) {
             loadDashboard();
         } else {
-            alert(data.error || 'Failed to clear hands raised');
+            showToast(data.error || 'Failed to clear hands raised', 'danger');
         }
     } catch (error) {
         console.error('Error clearing hands raised:', error);
-        alert('Failed to clear hands raised');
+        showToast('Failed to clear hands raised', 'danger');
     }
 }
 
 // Clear Poll Data
 async function clearPollData(pollId) {
-    if (!confirm('Are you sure you want to clear all poll data? This cannot be undone.')) return;
-    
-    // This would need a backend endpoint to clear poll responses
-    alert('Clear data functionality would be implemented here');
+    const confirmed = await showConfirm('Are you sure you want to clear all poll responses? This cannot be undone.');
+    if (!confirmed) return;
+    try {
+        const response = await fetch(`/api/clear_poll_responses/${pollId}`, { method: 'POST' });
+        const data = await response.json();
+        if (data.success) {
+            showToast('Poll responses cleared.');
+            loadDashboard();
+        } else {
+            showToast(data.error || 'Failed to clear poll data', 'danger');
+        }
+    } catch (error) {
+        console.error('Error clearing poll data:', error);
+        showToast('Failed to clear poll data', 'danger');
+    }
 }
 
 // Show create poll modal
@@ -1484,12 +1501,11 @@ function showCreatePollModal() {
 
 // Stop class
 async function stopClass() {
-    if (confirm('Are you sure you want to end the class?')) {
-        const response = await fetch(`/api/stop_class/${classId}`, {method: 'POST'});
-        const data = await response.json();
-        if (data.success) {
-            window.location.href = `/classroom/${classId}`;
-        }
+    if (!await showConfirm('Are you sure you want to end the class?')) return;
+    const response = await fetch(`/api/stop_class/${classId}`, {method: 'POST'});
+    const data = await response.json();
+    if (data.success) {
+        window.location.href = `/classroom/${classId}`;
     }
 }
 </script>

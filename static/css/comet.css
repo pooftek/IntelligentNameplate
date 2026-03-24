@@ -1,0 +1,110 @@
+/* ============================================
+   COMET — Brand CSS Variables & Global Styles
+   ============================================ */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* Core Palette */
+  --comet-navy:        #0D1628;
+  --comet-navy-mid:    #1A2D4A;
+  --comet-blue:        #57C5E4;
+  --comet-blue-dark:   #3BA8C8;
+  --comet-white:       #FFFFFF;
+  --comet-surface:     #F0F6FA;
+  --comet-surface-mid: #E2EEF5;
+
+  /* Semantic aliases */
+  --bg-gradient:          linear-gradient(135deg, var(--comet-navy) 0%, var(--comet-navy-mid) 100%);
+  --btn-primary-bg:       var(--comet-blue);
+  --btn-primary-hover:    var(--comet-blue-dark);
+  --btn-primary-text:     var(--comet-navy);
+  --scrollbar-thumb:      var(--comet-navy-mid);
+  --scrollbar-hover:      var(--comet-blue-dark);
+  --card-border-radius:   14px;
+  --tooltip-bg:           var(--comet-navy-mid);
+
+  /* Typography */
+  --font-family-base: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ---- Global ---- */
+body {
+  font-family: var(--font-family-base) !important;
+}
+
+/* ---- Scrollbars ---- */
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
+/* ---- Bootstrap Button Overrides ---- */
+.btn-primary {
+  background-color: var(--comet-blue) !important;
+  border-color: var(--comet-blue) !important;
+  color: var(--comet-navy) !important;
+  font-weight: 700;
+  border-radius: 10px;
+  transition: background-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--comet-blue-dark) !important;
+  border-color: var(--comet-blue-dark) !important;
+  color: var(--comet-white) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(87, 197, 228, 0.35) !important;
+}
+
+/* ---- Cards ---- */
+.card {
+  border-radius: var(--card-border-radius) !important;
+  border: none;
+}
+
+/* ---- Comet brand text utility ---- */
+.text-comet-blue { color: var(--comet-blue) !important; }
+.text-comet-navy { color: var(--comet-navy) !important; }
+.bg-comet-navy   { background-color: var(--comet-navy) !important; }
+.bg-comet-blue   { background-color: var(--comet-blue) !important; }
+
+/* ---- Comet wordmark ---- */
+.comet-wordmark {
+  font-family: var(--font-family-base);
+  font-weight: 800;
+  font-size: 1.6rem;
+  letter-spacing: -0.5px;
+  color: var(--comet-white);
+}
+.comet-wordmark span {
+  color: var(--comet-blue);
+}
+
+/* ---- Page header bar (professor pages) ---- */
+.comet-page-header {
+  background: var(--bg-gradient);
+  padding: 2rem;
+  border-radius: var(--card-border-radius) var(--card-border-radius) 0 0;
+  color: var(--comet-white);
+}
+
+/* ---- Badges ---- */
+.badge.bg-comet {
+  background-color: var(--comet-blue) !important;
+  color: var(--comet-navy) !important;
+  font-weight: 700;
+}
+
+/* ---- Focus rings ---- */
+:focus-visible {
+  outline: 2px solid var(--comet-blue);
+  outline-offset: 2px;
+}
+
+/* ---- Link color ---- */
+a.text-white:hover { color: var(--comet-blue) !important; }

@@ -13,10 +13,17 @@ from openpyxl.styles import Font, PatternFill
 from io import BytesIO
 import tempfile
 
+# Load environment variables from .env file if present
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed; fall back to OS env vars
+
 # Always load templates from this project folder (avoids stale/wrong UI when cwd differs)
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=os.path.join(_APP_DIR, 'templates'))
-app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-only-insecure-key')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///classroom_app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -118,6 +125,14 @@ class ClassSettings(db.Model):
     quiet_mode = db.Column(db.Boolean, default=False)
     class_obj = db.relationship('Class', backref=db.backref('settings', uselist=False))
 
+class ProfessorPreferences(db.Model):
+    """Global default preferences per professor, used as defaults when creating new classes."""
+    id = db.Column(db.Integer, primary_key=True)
+    professor_id = db.Column(db.Integer, db.ForeignKey('professor.id'), nullable=False, unique=True)
+    default_show_first_name_only = db.Column(db.Boolean, default=False)
+    default_quiet_mode = db.Column(db.Boolean, default=False)
+    professor = db.relationship('Professor', backref=db.backref('preferences', uselist=False))
+
 class ClassSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
@@ -214,6 +229,25 @@ def register():
 @app.route('/logout')
 @login_required
 def logout():
+    # Stop all active classes for this professor before logging out
+    active_classes = Class.query.filter_by(professor_id=current_user.id, is_active=True).all()
+    end_time = datetime.utcnow()
+    today = end_time.date()
+    for class_obj in active_classes:
+        class_obj.is_active = False
+        # Close open session
+        active_session = ClassSession.query.filter_by(
+            class_id=class_obj.id, end_time=None
+        ).order_by(ClassSession.start_time.desc()).first()
+        if active_session:
+            active_session.end_time = end_time
+        # Mark leave time for any present students
+        for att in Attendance.query.filter_by(class_id=class_obj.id, date=today, present=True).all():
+            if not att.leave_time:
+                att.leave_time = end_time
+        socketio.emit('class_stopped', {'class_id': class_obj.id}, room=f'class_{class_obj.id}')
+    if active_classes:
+        db.session.commit()
     logout_user()
     return redirect(url_for('login'))
 
@@ -227,6 +261,35 @@ def dashboard():
 @login_required
 def preferences():
     return render_template('preferences.html')
+
+@app.route('/api/preferences', methods=['GET'])
+@login_required
+def get_preferences():
+    """Get global professor preferences."""
+    prefs = ProfessorPreferences.query.filter_by(professor_id=current_user.id).first()
+    if not prefs:
+        prefs = ProfessorPreferences(professor_id=current_user.id)
+        db.session.add(prefs)
+        db.session.commit()
+    return jsonify({
+        'success': True,
+        'show_first_name_only': prefs.default_show_first_name_only,
+        'quiet_mode': prefs.default_quiet_mode
+    })
+
+@app.route('/api/preferences', methods=['POST'])
+@login_required
+def save_preferences():
+    """Save global professor preferences."""
+    data = request.get_json()
+    prefs = ProfessorPreferences.query.filter_by(professor_id=current_user.id).first()
+    if not prefs:
+        prefs = ProfessorPreferences(professor_id=current_user.id)
+        db.session.add(prefs)
+    prefs.default_show_first_name_only = bool(data.get('show_first_name_only', False))
+    prefs.default_quiet_mode = bool(data.get('quiet_mode', False))
+    db.session.commit()
+    return jsonify({'success': True})
 
 @app.route('/classroom/<int:class_id>')
 @login_required
@@ -303,8 +366,19 @@ def start_class(class_id):
         exclude_from_grading=exclude_from_grading
     )
     db.session.add(session_record)
+
+    # Reset interaction counters so each session starts at zero
+    today = datetime.utcnow().date()
+    for p in Participation.query.filter_by(class_id=class_id, date=today).all():
+        p.hand_raises = 0
+        p.thumbs_up = 0
+        p.thumbs_down = 0
+    # Clear any lingering active hand raises from a previous session
+    for hr in HandRaise.query.filter_by(class_id=class_id, cleared=False).all():
+        hr.cleared = True
+
     db.session.commit()
-    
+
     socketio.emit('class_started', {'class_id': class_id, 'class_code': class_obj.class_code}, room=f'class_{class_id}')
     
     return jsonify({'success': True, 'redirect': url_for('faculty_dashboard', class_id=class_id)})
@@ -985,8 +1059,21 @@ def toggle_poll_graded(poll_id):
     
     poll.is_graded = is_graded
     db.session.commit()
-    
+
     return jsonify({'success': True, 'is_graded': poll.is_graded})
+
+@app.route('/api/clear_poll_responses/<int:poll_id>', methods=['POST'])
+@login_required
+def clear_poll_responses(poll_id):
+    """Delete all student responses for a given poll (professor only)."""
+    poll = Poll.query.get_or_404(poll_id)
+    class_obj = Class.query.get_or_404(poll.class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    PollResponse.query.filter_by(poll_id=poll_id).delete()
+    db.session.commit()
+    socketio.emit('poll_responses_cleared', {'poll_id': poll_id}, room=f'class_{poll.class_id}')
+    return jsonify({'success': True})
 
 @app.route('/api/create_class', methods=['POST'])
 @login_required
@@ -2404,13 +2491,14 @@ def live_dashboard(class_id):
         Enrollment.is_active == True
     ).count()
     
-    # Get present students
+    # Get students currently in the class (joined today, not yet left)
     present_students = db.session.query(Student).join(Attendance).filter(
         Attendance.class_id == class_id,
         Attendance.date == today,
-        Attendance.present == True
+        Attendance.present == True,
+        Attendance.leave_time == None
     ).all()
-    
+
     # Get hands raised (not cleared, ordered by timestamp)
     hands_raised = db.session.query(HandRaise, Student).join(Student).filter(
         HandRaise.class_id == class_id,
@@ -2515,15 +2603,15 @@ def live_attendance(class_id):
         Enrollment.is_active == True
     ).all()
     
-    # Get present students
+    # Get students currently present (joined and not yet left)
     present_student_ids = set(
-        db.session.query(Attendance.student_id).filter_by(
-            class_id=class_id,
-            date=today,
-            present=True
+        id[0] for id in db.session.query(Attendance.student_id).filter(
+            Attendance.class_id == class_id,
+            Attendance.date == today,
+            Attendance.present == True,
+            Attendance.leave_time == None
         ).all()
     )
-    present_student_ids = {id[0] for id in present_student_ids}
     
     # Get participation data for all students
     participations = Participation.query.filter_by(
@@ -2768,9 +2856,10 @@ def on_get_live_stats(data):
     present_students = db.session.query(Student).join(Attendance).filter(
         Attendance.class_id == class_id,
         Attendance.date == today,
-        Attendance.present == True
+        Attendance.present == True,
+        Attendance.leave_time == None
     ).all()
-    
+
     participations = Participation.query.filter_by(
         class_id=class_id,
         date=today

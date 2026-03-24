@@ -4,19 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Student Nameplate</title>
+    <title>Comet — Student Nameplate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/comet.css') }}">
     <style>
         :root {
-            --western-purple: #4F2683;
-            --faculty-gradient: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
+            --comet-navy: #0D1628;
+            --comet-navy-mid: #1A2D4A;
+            --comet-blue: #57C5E4;
+            --comet-blue-dark: #3BA8C8;
+            --faculty-gradient: linear-gradient(135deg, var(--comet-navy) 0%, var(--comet-navy-mid) 100%);
         }
         html, body {
             margin: 0;
             height: 100%;
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .np-root {
             display: flex;
@@ -68,13 +73,14 @@
         }
         .login-subtitle { font-size: clamp(0.9rem, 2vw, 1rem); }
         .btn-primary-gradient {
-            background: var(--faculty-gradient);
+            background: var(--comet-blue);
             border: none;
             border-radius: 10px;
             padding: 12px 30px;
-            color: #fff;
+            color: var(--comet-navy);
+            font-weight: 700;
         }
-        .btn-primary-gradient:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .btn-primary-gradient:hover { color: var(--comet-navy); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(87,197,228,0.35); }
 
         /* Front: blank login */
         .front-login-blank { width: 100%; height: 100%; }
@@ -101,9 +107,9 @@
             font-weight: bold;
             color: #000;
             line-height: 1.05;
-            word-break: break-word;
-            overflow-wrap: anywhere;
-            hyphens: auto;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             width: 100%;
             max-width: 100%;
             margin: 0;
@@ -719,14 +725,16 @@
         el.style.width = '100%';
         el.style.maxWidth = maxW + 'px';
         el.style.lineHeight = '1.05';
+        el.style.whiteSpace = 'nowrap'; // Always single line
         let lo = 12;
-        let hi = Math.min(Math.max(maxW, maxH) * 1.2, 900);
+        let hi = Math.min(maxH * 0.9, 900); // Cap by height — single line only
         let best = lo;
         for (let i = 0; i < 40; i++) {
             if (hi - lo < 0.35) break;
             const mid = (lo + hi) / 2;
             el.style.fontSize = mid + 'px';
-            if (el.scrollWidth <= maxW + 1 && el.scrollHeight <= maxH + 1) {
+            // Only check width — height check removed to prevent multi-line fallback
+            if (el.scrollWidth <= maxW + 1) {
                 best = mid;
                 lo = mid;
             } else {
@@ -946,6 +954,24 @@
                 handBtn.classList.remove('active');
                 clearFrontNameplateInline();
             }
+        });
+
+        // When professor ends class, automatically return student to My Classes screen
+        socket.on('class_stopped', async function (d) {
+            if (!currentClassId || !d || String(d.class_id) !== String(currentClassId)) return;
+            flushThumbsBeforeLeave();
+            // Server already logged leave time — no need to call leave_class API
+            currentClassId = null;
+            currentClassMeta = null;
+            currentPoll = null;
+            hideBackPollUI();
+            resetDefaultFrontPlate();
+            myClasses = await loadClasses();
+            setState('home');
+            document.getElementById('backSession').classList.add('panel-hidden');
+            document.getElementById('backHome').classList.remove('panel-hidden');
+            updateFrontName();
+            renderClassCards();
         });
     }
 

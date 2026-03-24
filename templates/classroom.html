@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ class_obj.name }} - Classroom App{% endblock %}
+{% block title %}Comet — {{ class_obj.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -41,12 +41,12 @@
     }
     
     .classroom-content::-webkit-scrollbar-thumb {
-        background: #2A1A40;
+        background: var(--scrollbar-thumb);
         border-radius: 6px;
     }
-    
+
     .classroom-content::-webkit-scrollbar-thumb:hover {
-        background: #3B2556;
+        background: var(--scrollbar-hover);
     }
     
     .modal-body-scrollable {
@@ -64,12 +64,12 @@
     }
     
     .modal-body-scrollable::-webkit-scrollbar-thumb {
-        background: #2A1A40;
+        background: var(--scrollbar-thumb);
         border-radius: 6px;
     }
-    
+
     .modal-body-scrollable::-webkit-scrollbar-thumb:hover {
-        background: #3B2556;
+        background: var(--scrollbar-hover);
     }
     
     .responsive-title {
@@ -137,7 +137,7 @@
     
     .option-icon i {
         font-size: clamp(1.5rem, 6vw, 6rem);
-        background: linear-gradient(135deg, #3B2556 0%, #550DB1 100%);
+        background: linear-gradient(135deg, var(--comet-navy-mid) 0%, var(--comet-blue) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;

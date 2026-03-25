@@ -38,6 +38,15 @@
             background: var(--faculty-gradient);
             min-height: 100%;
         }
+        #npBack {
+            display: flex;
+            flex-direction: column;
+            min-height: 100%;
+            position: relative;
+        }
+        #backGlobalStatus.session-top {
+            background: #fff;
+        }
         .sleep-layer {
             position: absolute;
             inset: 0;
@@ -59,7 +68,8 @@
             display: flex;
             align-items: flex-start;
             justify-content: center;
-            height: 100%;
+            flex: 1;
+            min-height: 0;
             padding-top: 15vh;
             overflow-y: auto;
         }
@@ -101,15 +111,13 @@
             text-align: center;
             background: #fff;
             box-sizing: border-box;
-            overflow: hidden;
+            overflow: visible;
         }
         .front-name-display .name-text {
             font-weight: bold;
             color: #000;
             line-height: 1.05;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             width: 100%;
             max-width: 100%;
             margin: 0;
@@ -120,7 +128,8 @@
         /* My Classes (faculty dashboard clone) */
         .back-inner-home {
             zoom: 1.25;
-            height: 100%;
+            flex: 1;
+            min-height: 0;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -195,15 +204,29 @@
             transform: translateY(-5px);
             box-shadow: 0 15px 40px rgba(0,0,0,0.3);
         }
+        .class-card.class-card-inactive {
+            opacity: 0.95;
+        }
+        .class-card.class-card-inactive:hover {
+            transform: translateY(-3px);
+        }
 
         /* In-class session back: white, larger title/code */
         .back-inner-session {
-            height: 100%;
+            flex: 1;
+            min-height: 0;
             display: flex;
             flex-direction: column;
             background: #fff;
             color: #212529;
             position: relative;
+        }
+        .session-main {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
         }
         /* Full-screen poll (back only) — matches faculty chart colors */
         .back-poll-fs {
@@ -270,11 +293,29 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 0.75rem;
             padding: 1rem 1.25rem;
             font-size: 1.15rem;
             font-weight: 600;
             color: #000;
             border-bottom: 1px solid #e9ecef;
+        }
+        #sessionTime {
+            flex-shrink: 0;
+            font-variant-numeric: tabular-nums;
+            min-width: 0;
+        }
+        .session-top-status {
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+            gap: 0.15rem;
+        }
+        .session-battery-charging {
+            font-size: 1.15rem;
+            line-height: 1;
+            color: #212529;
+            flex-shrink: 0;
         }
         /* Custom battery — faculty inactive-symbol grey (#6c757d), compact */
         .session-battery {
@@ -382,7 +423,7 @@
         .session-bottom {
             flex-shrink: 0;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
             padding: 1.25rem 1.25rem 1.5rem;
             gap: 1rem;
@@ -394,6 +435,9 @@
             flex-direction: row;
             align-items: center;
             gap: 0.75rem;
+        }
+        .session-bottom-right {
+            margin-left: auto;
         }
         .btn-circle {
             width: 56px;
@@ -452,6 +496,19 @@
     <!-- BACK SCREEN -->
     <section class="np-screen np-back faculty-bg" id="npBack">
         <div class="sleep-layer" id="sleepBack" aria-label="Wake"></div>
+        <div class="session-top panel-hidden" id="backGlobalStatus">
+            <span id="sessionTime"></span>
+            <div class="session-top-status">
+                <span class="session-battery-charging panel-hidden" id="sessionBatteryCharging" aria-hidden="true"><i class="bi bi-lightning-charge-fill"></i></span>
+                <span class="session-battery" id="sessionBattery" title="Battery" role="img" aria-label="Battery level">
+                    <span class="session-battery-shell">
+                        <span class="session-battery-fill" id="sessionBatteryFill"></span>
+                        <span class="session-battery-pct" id="sessionBatteryPct">100</span>
+                    </span>
+                    <span class="session-battery-nub" aria-hidden="true"></span>
+                </span>
+            </div>
+        </div>
 
         <!-- LOGIN -->
         <div class="back-inner-login panel-hidden" id="backLogin">
@@ -497,37 +554,29 @@
 
         <!-- IN-CLASS SESSION -->
         <div class="back-inner-session panel-hidden" id="backSession">
-            <div class="session-top">
-                <span id="sessionTime"></span>
-                <span class="session-battery" id="sessionBattery" title="Battery" role="img" aria-label="Battery level">
-                    <span class="session-battery-shell">
-                        <span class="session-battery-fill" id="sessionBatteryFill"></span>
-                        <span class="session-battery-pct" id="sessionBatteryPct">100</span>
-                    </span>
-                    <span class="session-battery-nub" aria-hidden="true"></span>
-                </span>
-            </div>
-            <div class="session-center">
-                <div class="session-center-inner">
-                    <h2 class="session-class-name" id="sessionClassName"></h2>
-                    <p class="session-class-code" id="sessionClassCode"></p>
+            <div class="session-main">
+                <div class="session-center">
+                    <div class="session-center-inner">
+                        <h2 class="session-class-name" id="sessionClassName"></h2>
+                        <p class="session-class-code" id="sessionClassCode"></p>
+                    </div>
                 </div>
-            </div>
-            <div class="session-bottom">
-                <div class="session-bottom-left">
-                    <button type="button" class="btn btn-circle hand" id="btnHand" title="Raise hand" aria-label="Raise hand"><i class="bi bi-hand-index"></i></button>
-                    <button type="button" class="btn btn-circle thumb-up" id="btnThumbUp" title="Thumbs up" aria-label="Thumbs up"><i class="bi bi-hand-thumbs-up"></i></button>
-                    <button type="button" class="btn btn-circle thumb-down" id="btnThumbDown" title="Thumbs down" aria-label="Thumbs down"><i class="bi bi-hand-thumbs-down"></i></button>
+                <div class="session-bottom">
+                    <div class="session-bottom-left" id="sessionParticipationControls">
+                        <button type="button" class="btn btn-circle hand" id="btnHand" title="Raise hand" aria-label="Raise hand"><i class="bi bi-hand-index"></i></button>
+                        <button type="button" class="btn btn-circle thumb-up" id="btnThumbUp" title="Thumbs up" aria-label="Thumbs up"><i class="bi bi-hand-thumbs-up"></i></button>
+                        <button type="button" class="btn btn-circle thumb-down" id="btnThumbDown" title="Thumbs down" aria-label="Thumbs down"><i class="bi bi-hand-thumbs-down"></i></button>
+                    </div>
+                    <div class="session-bottom-right">
+                        <button type="button" class="btn btn-circle home-btn" id="btnSessionHome" title="Home" aria-label="Home"><i class="bi bi-house-fill"></i></button>
+                        <button type="button" class="btn btn-circle logout-session" id="btnSessionLogout" title="Logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></button>
+                    </div>
                 </div>
-                <div class="session-bottom-right">
-                    <button type="button" class="btn btn-circle home-btn" id="btnSessionHome" title="Home" aria-label="Home"><i class="bi bi-house-fill"></i></button>
-                    <button type="button" class="btn btn-circle logout-session" id="btnSessionLogout" title="Logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></button>
+                <div id="backPollFullscreen" class="back-poll-fs panel-hidden" aria-live="polite">
+                    <div class="back-poll-q" id="backPollQuestion"></div>
+                    <div class="back-poll-opts" id="backPollOptions"></div>
+                    <div id="backPollSubmitted" class="back-poll-done panel-hidden"></div>
                 </div>
-            </div>
-            <div id="backPollFullscreen" class="back-poll-fs panel-hidden" aria-live="polite">
-                <div class="back-poll-q" id="backPollQuestion"></div>
-                <div class="back-poll-opts" id="backPollOptions"></div>
-                <div id="backPollSubmitted" class="back-poll-done panel-hidden"></div>
             </div>
         </div>
     </section>
@@ -570,6 +619,31 @@
     let currentClassMeta = null;
     let socket = null;
     let currentPoll = null;
+
+    const NP_STUDENT_TOKEN_KEY = 'np_student_token';
+
+    function getStudentToken() {
+        try { return sessionStorage.getItem(NP_STUDENT_TOKEN_KEY) || ''; } catch (e) { return ''; }
+    }
+    function setStudentToken(t) {
+        if (!t) return;
+        try { sessionStorage.setItem(NP_STUDENT_TOKEN_KEY, t); } catch (e) {}
+    }
+    function clearStudentToken() {
+        try { sessionStorage.removeItem(NP_STUDENT_TOKEN_KEY); } catch (e) {}
+    }
+
+    async function studentFetch(url, options) {
+        options = options || {};
+        var o = Object.assign({}, options);
+        var headers = new Headers(options.headers || {});
+        var tok = getStudentToken();
+        if (tok) headers.set('Authorization', 'Bearer ' + tok);
+        o.headers = headers;
+        if (o.credentials === undefined) o.credentials = 'include';
+        return fetch(url, o);
+    }
+    let homeListPollTimer = null;
     /* Same order as faculty dashboard poll chart */
     var POLL_OPTION_BG = ['#28a745', '#dc3545', '#ffc107', '#007bff', '#6c757d'];
     var POLL_OPTION_BTN_FG = ['#ffffff', '#ffffff', '#212529', '#ffffff', '#ffffff'];
@@ -595,7 +669,11 @@
             nameWrap.style.removeProperty('background');
             nameWrap.style.removeProperty('background-color');
         }
-        if (nameEl) nameEl.style.removeProperty('color');
+        if (nameEl) {
+            nameEl.style.removeProperty('color');
+            nameEl.style.removeProperty('transform');
+            nameEl.style.removeProperty('transform-origin');
+        }
         var pollFs = document.getElementById('backPollFullscreen');
         if (pollFs) {
             pollFs.style.removeProperty('background');
@@ -665,7 +743,11 @@
             nameWrap.style.removeProperty('background');
             nameWrap.style.removeProperty('background-color');
         }
-        if (nameEl) nameEl.style.removeProperty('color');
+        if (nameEl) {
+            nameEl.style.removeProperty('color');
+            nameEl.style.removeProperty('transform');
+            nameEl.style.removeProperty('transform-origin');
+        }
         scheduleFitFrontName();
     }
 
@@ -694,13 +776,55 @@
         root.className = 'np-root state-' + name;
     }
 
+    function isHomeState() {
+        return root.className.indexOf('state-home') >= 0;
+    }
+
+    function stopStudentLiveUpdates() {
+        if (homeListPollTimer) {
+            clearInterval(homeListPollTimer);
+            homeListPollTimer = null;
+        }
+    }
+
+    function startStudentLiveUpdates() {
+        stopStudentLiveUpdates();
+        homeListPollTimer = setInterval(async function () {
+            if (!isHomeState() || !currentStudent) return;
+            const next = await loadClasses();
+            if (!isHomeState()) return;
+            myClasses = next;
+            renderClassCards();
+            requestJoinStudentEnrollments();
+        }, 5000);
+    }
+
+    function requestJoinStudentEnrollments() {
+        if (socket && socket.connected) {
+            var tok = getStudentToken();
+            try { socket.emit('join_student_enrollments', tok ? { token: tok } : {}); } catch (e) {}
+        }
+    }
+
+    function syncBackStatusBarVisibility() {
+        var login = document.getElementById('backLogin');
+        var home = document.getElementById('backHome');
+        var sess = document.getElementById('backSession');
+        var bar = document.getElementById('backGlobalStatus');
+        if (!bar || !login || !home || !sess) return;
+        var show = !login.classList.contains('panel-hidden') || !home.classList.contains('panel-hidden') || !sess.classList.contains('panel-hidden');
+        bar.classList.toggle('panel-hidden', !show);
+    }
+
     function wake() {
+        disconnectSocket();
         setState('login');
         document.getElementById('frontLoginBlank').classList.remove('panel-hidden');
         document.getElementById('backLogin').classList.remove('panel-hidden');
         document.getElementById('frontNameWrap').classList.add('panel-hidden');
         document.getElementById('backHome').classList.add('panel-hidden');
         document.getElementById('backSession').classList.add('panel-hidden');
+        syncBackStatusBarVisibility();
     }
 
     document.getElementById('sleepFront').addEventListener('pointerdown', wake);
@@ -717,6 +841,8 @@
         const wrap = document.getElementById('frontNameWrap');
         const el = document.getElementById('frontStudentName');
         if (!wrap || !el || wrap.classList.contains('panel-hidden') || !el.textContent.trim()) return;
+        el.style.transform = '';
+        el.style.transformOrigin = '';
         const cs = window.getComputedStyle(wrap);
         const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
         const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
@@ -742,6 +868,11 @@
             }
         }
         el.style.fontSize = best + 'px';
+        if (el.scrollWidth > maxW + 1) {
+            const s = maxW / el.scrollWidth;
+            el.style.transformOrigin = 'center center';
+            el.style.transform = 'scale(' + s + ')';
+        }
     }
 
     function scheduleFitFrontName() {
@@ -755,6 +886,8 @@
         if (!currentStudent) {
             el.textContent = '';
             el.style.fontSize = '';
+            el.style.transform = '';
+            el.style.transformOrigin = '';
             return;
         }
         if (currentClassMeta && typeof currentClassMeta.show_first_name_only === 'boolean') {
@@ -787,12 +920,14 @@
             });
             const data = await res.json();
             if (data.success && data.needs_password) {
+                if (data.token) setStudentToken(data.token);
                 currentStudent = data.student;
                 document.getElementById('loginPassword').value = '';
                 new bootstrap.Modal(document.getElementById('createPasswordModal')).show();
                 return;
             }
             if (data.success && data.student) {
+                if (data.token) setStudentToken(data.token);
                 currentStudent = data.student;
                 await enterHome();
                 return;
@@ -820,14 +955,14 @@
             errEl.style.display = 'block';
             return;
         }
-        const res = await fetch('/api/student/set_password', {
+        const res = await studentFetch('/api/student/set_password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ password: pw, confirm_password: pw2 })
         });
         const data = await res.json();
         if (data.success && data.student) {
+            if (data.token) setStudentToken(data.token);
             bootstrap.Modal.getInstance(document.getElementById('createPasswordModal')).hide();
             currentStudent = Object.assign({}, currentStudent, data.student);
             document.getElementById('newPassword').value = '';
@@ -840,8 +975,9 @@
     });
 
     async function loadClasses() {
-        const res = await fetch('/api/student/classes', { credentials: 'include' });
+        const res = await studentFetch('/api/student/classes', {});
         if (res.status === 401) {
+            clearStudentToken();
             wake();
             document.getElementById('loginError').textContent = 'Session expired. Please log in again.';
             document.getElementById('loginError').style.display = 'block';
@@ -850,6 +986,19 @@
         const data = await res.json();
         if (data.success === false) return [];
         return Array.isArray(data) ? data : [];
+    }
+
+    /** Update live/idle flag from Socket.IO (no HTTP) for instant UI like in-class reactions. */
+    function patchMyClassActive(classId, isActive) {
+        if (!myClasses || !myClasses.length) return false;
+        const id = Number(classId);
+        for (var i = 0; i < myClasses.length; i++) {
+            if (Number(myClasses[i].id) === id) {
+                myClasses[i].is_active = isActive;
+                return true;
+            }
+        }
+        return false;
     }
 
     function renderClassCards() {
@@ -864,13 +1013,18 @@
         myClasses.forEach(c => {
             const col = document.createElement('div');
             col.className = 'col-md-4';
+            const live = !!c.is_active;
+            const badge = live
+                ? '<span class="badge bg-success status-badge">Active</span>'
+                : '<span class="badge bg-secondary status-badge">Inactive</span>';
+            const cardCls = 'card class-card' + (live ? '' : ' class-card-inactive');
             col.innerHTML = `
-                <div class="card class-card" data-class-id="${c.id}">
+                <div class="${cardCls}" data-class-id="${c.id}">
                     <div class="card-body">
                         <div style="flex:1;"><h5 class="card-title">${escapeHtml(c.name)}</h5></div>
                         <div style="margin-top:auto;">
                             <p class="class-code text-muted" style="margin-bottom:0.5rem;">${escapeHtml(c.class_code)}</p>
-                            <span class="badge bg-success status-badge">Active</span>
+                            ${badge}
                         </div>
                     </div>
                 </div>`;
@@ -895,16 +1049,18 @@
         document.getElementById('backSession').classList.add('panel-hidden');
         currentClassId = null;
         currentClassMeta = null;
-        disconnectSocket();
         updateFrontName();
         renderClassCards();
+        await ensureStudentSocketReady();
+        requestJoinStudentEnrollments();
+        startStudentLiveUpdates();
+        syncBackStatusBarVisibility();
     }
 
     async function joinClassSession(c) {
-        const res = await fetch('/api/student/join_class', {
+        const res = await studentFetch('/api/student/join_class', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ class_id: c.id })
         });
         const data = await res.json();
@@ -914,24 +1070,70 @@
         }
         currentClassId = c.id;
         currentClassMeta = { ...c };
-        connectSocket();
+        stopStudentLiveUpdates();
+        await ensureStudentSocketReady();
         socket.emit('join_class', { class_id: c.id });
         setState('session');
         document.getElementById('backHome').classList.add('panel-hidden');
         document.getElementById('backSession').classList.remove('panel-hidden');
         document.getElementById('sessionClassName').textContent = c.name;
         document.getElementById('sessionClassCode').textContent = c.class_code;
+        applyQuietParticipationUI();
         updateFrontName();
         refreshInteractionState();
+        syncBackStatusBarVisibility();
     }
 
-    function connectSocket() {
-        if (socket && socket.connected) return;
-        socket = io({ transports: ['websocket', 'polling'] });
+    function applyQuietParticipationUI() {
+        var row = document.getElementById('sessionParticipationControls');
+        if (!row) return;
+        if (currentClassMeta && currentClassMeta.quiet_mode) {
+            row.classList.add('panel-hidden');
+        } else {
+            row.classList.remove('panel-hidden');
+        }
+    }
+
+    function initStudentSocketIfNeeded() {
+        if (socket) {
+            if (socket.connected) requestJoinStudentEnrollments();
+            return;
+        }
+        // WebSocket only — avoids Engine.IO long-polling delivery delays (can be 10s+ between polls).
+        socket = io({
+            transports: ['websocket'],
+            reconnection: true,
+            reconnectionDelay: 500,
+            reconnectionDelayMax: 4000,
+            timeout: 15000
+        });
+        socket.on('connect', function () {
+            requestJoinStudentEnrollments();
+        });
         socket.on('settings_updated', function (d) {
-            if (!currentClassMeta || currentClassId == null) return;
-            if (typeof d.show_first_name_only === 'boolean') {
-                currentClassMeta.show_first_name_only = d.show_first_name_only;
+            if (!d || d.class_id == null || d.class_id === undefined) return;
+            var cid = Number(d.class_id);
+            for (var i = 0; i < myClasses.length; i++) {
+                if (Number(myClasses[i].id) === cid) {
+                    if (typeof d.show_first_name_only === 'boolean') {
+                        myClasses[i].show_first_name_only = d.show_first_name_only;
+                    }
+                    if (typeof d.quiet_mode === 'boolean') {
+                        myClasses[i].quiet_mode = d.quiet_mode;
+                    }
+                    break;
+                }
+            }
+            if (currentClassId != null && Number(currentClassId) === cid && currentClassMeta) {
+                if (typeof d.show_first_name_only === 'boolean') {
+                    currentClassMeta.show_first_name_only = d.show_first_name_only;
+                }
+                if (typeof d.quiet_mode === 'boolean') {
+                    currentClassMeta.quiet_mode = d.quiet_mode;
+                }
+                applyQuietParticipationUI();
+            }
+            if (currentStudent) {
                 updateFrontName();
             }
         });
@@ -947,6 +1149,13 @@
             resetDefaultFrontPlate();
             refreshInteractionState();
         });
+        socket.on('poll_responses_cleared', function (d) {
+            if (!d || d.poll_id == null || !currentClassId || !currentPoll) return;
+            if (Number(d.poll_id) !== Number(currentPoll.poll_id)) return;
+            resetDefaultFrontPlate();
+            showBackPollFullscreen(currentPoll);
+            refreshInteractionState();
+        });
         socket.on('all_hands_cleared', function (d) {
             if (!currentClassId || !d || String(d.class_id) !== String(currentClassId)) return;
             var handBtn = document.getElementById('btnHand');
@@ -955,27 +1164,82 @@
                 clearFrontNameplateInline();
             }
         });
-
-        // When professor ends class, automatically return student to My Classes screen
-        socket.on('class_stopped', async function (d) {
+        socket.on('thumbs_reactions_cleared', function (d) {
             if (!currentClassId || !d || String(d.class_id) !== String(currentClassId)) return;
-            flushThumbsBeforeLeave();
-            // Server already logged leave time — no need to call leave_class API
-            currentClassId = null;
-            currentClassMeta = null;
-            currentPoll = null;
-            hideBackPollUI();
-            resetDefaultFrontPlate();
-            myClasses = await loadClasses();
-            setState('home');
-            document.getElementById('backSession').classList.add('panel-hidden');
-            document.getElementById('backHome').classList.remove('panel-hidden');
-            updateFrontName();
-            renderClassCards();
+            clearThumbAutoOffTimer();
+            refreshInteractionState();
+        });
+
+        socket.on('class_started', function (d) {
+            if (!isHomeState() || !d || d.class_id == null) return;
+            if (!patchMyClassActive(d.class_id, true)) {
+                loadClasses().then(function (next) {
+                    if (!isHomeState()) return;
+                    myClasses = next;
+                    renderClassCards();
+                });
+            } else {
+                renderClassCards();
+            }
+            requestJoinStudentEnrollments();
+        });
+
+        // Professor ended class (in session) or live status changed (My Classes)
+        socket.on('class_stopped', function (d) {
+            if (currentClassId && d && String(d.class_id) === String(currentClassId)) {
+                flushThumbsBeforeLeave();
+                patchMyClassActive(d.class_id, false);
+                currentClassId = null;
+                currentClassMeta = null;
+                currentPoll = null;
+                hideBackPollUI();
+                resetDefaultFrontPlate();
+                setState('home');
+                document.getElementById('backSession').classList.add('panel-hidden');
+                document.getElementById('backHome').classList.remove('panel-hidden');
+                updateFrontName();
+                renderClassCards();
+                requestJoinStudentEnrollments();
+                startStudentLiveUpdates();
+                loadClasses().then(function (next) {
+                    if (!isHomeState()) return;
+                    myClasses = next;
+                    renderClassCards();
+                });
+                syncBackStatusBarVisibility();
+                return;
+            }
+            if (!isHomeState() || !d || d.class_id == null) return;
+            if (!patchMyClassActive(d.class_id, false)) {
+                loadClasses().then(function (next) {
+                    if (!isHomeState()) return;
+                    myClasses = next;
+                    renderClassCards();
+                });
+            } else {
+                renderClassCards();
+            }
+            requestJoinStudentEnrollments();
+        });
+    }
+
+    function ensureStudentSocketReady() {
+        return new Promise(function (resolve) {
+            initStudentSocketIfNeeded();
+            if (socket.connected) {
+                requestJoinStudentEnrollments();
+                resolve();
+                return;
+            }
+            socket.once('connect', function () {
+                requestJoinStudentEnrollments();
+                resolve();
+            });
         });
     }
 
     function disconnectSocket() {
+        stopStudentLiveUpdates();
         if (socket) {
             try { socket.disconnect(); } catch (e) {}
             socket = null;
@@ -985,10 +1249,9 @@
     async function submitPoll(answerIndex) {
         if (!currentPoll || !currentClassId) return;
         var pollSnapshot = currentPoll;
-        var res = await fetch('/api/student/poll_response', {
+        var res = await studentFetch('/api/student/poll_response', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ poll_id: pollSnapshot.poll_id, answer: answerIndex })
         });
         var data = await res.json();
@@ -1001,11 +1264,8 @@
             if (pollIsAnonymous(pollSnapshot)) {
                 resetDefaultFrontPlate();
             } else {
-                var bgIdx = answerIndex;
-                if (data.has_correct_answer && data.correct_answer_index !== null && data.correct_answer_index !== undefined) {
-                    bgIdx = data.correct_answer_index;
-                }
-                applyNonAnonymousAnswerColors(bgIdx);
+                // Colour matches the option the student selected (same index as poll buttons / faculty chart)
+                applyNonAnonymousAnswerColors(answerIndex);
             }
         } else {
             var err = (data.error || '').toLowerCase();
@@ -1047,10 +1307,9 @@
     async function sendThumbsAutoOff(type) {
         if (!currentClassId || (type !== 'thumbs_up' && type !== 'thumbs_down')) return;
         try {
-            const res = await fetch('/api/student/interaction', {
+            const res = await studentFetch('/api/student/interaction', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
                 body: JSON.stringify({ class_id: currentClassId, type: type, action: 'auto_off' })
             });
             const data = await res.json();
@@ -1063,7 +1322,7 @@
     async function refreshInteractionState() {
         if (!currentClassId) return;
         try {
-            const res = await fetch('/api/student/interaction_state/' + currentClassId, { credentials: 'include' });
+            const res = await studentFetch('/api/student/interaction_state/' + currentClassId, {});
             const d = await res.json();
             if (d.success) {
                 document.getElementById('btnHand').classList.toggle('active', d.hand_raise_active);
@@ -1083,13 +1342,13 @@
 
     async function sendInteraction(type) {
         if (!currentClassId) return;
+        if (currentClassMeta && currentClassMeta.quiet_mode) return;
         if (type === 'thumbs_up' || type === 'thumbs_down') {
             clearThumbAutoOffTimer();
         }
-        const res = await fetch('/api/student/interaction', {
+        const res = await studentFetch('/api/student/interaction', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ class_id: currentClassId, type })
         });
         const data = await res.json();
@@ -1133,10 +1392,9 @@
     document.getElementById('btnSessionHome').addEventListener('click', async function () {
         flushThumbsBeforeLeave();
         if (currentClassId) {
-            await fetch('/api/student/leave_class', {
+            await studentFetch('/api/student/leave_class', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
                 body: JSON.stringify({ class_id: currentClassId })
             });
             if (socket) socket.emit('leave_class', { class_id: currentClassId });
@@ -1152,16 +1410,23 @@
         document.getElementById('backHome').classList.remove('panel-hidden');
         updateFrontName();
         renderClassCards();
+        await ensureStudentSocketReady();
+        requestJoinStudentEnrollments();
+        startStudentLiveUpdates();
+        syncBackStatusBarVisibility();
     });
 
     async function doLogout(withClass) {
         flushThumbsBeforeLeave();
-        await fetch('/api/student/logout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify(withClass && currentClassId ? { class_id: currentClassId } : {})
-        });
+        try {
+            await studentFetch('/api/student/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(withClass && currentClassId ? { class_id: currentClassId } : {})
+            });
+        } finally {
+            clearStudentToken();
+        }
         if (socket && currentClassId) try { socket.emit('leave_class', { class_id: currentClassId }); } catch (e) {}
         disconnectSocket();
         hideBackPollUI();
@@ -1180,6 +1445,7 @@
         document.getElementById('frontLoginBlank').classList.add('panel-hidden');
         document.getElementById('backLogin').classList.add('panel-hidden');
         setState('sleep');
+        syncBackStatusBarVisibility();
     }
 
     document.getElementById('btnLogoutHome').addEventListener('click', () => doLogout(false));
@@ -1187,7 +1453,7 @@
 
     function tickClock() {
         const now = new Date();
-        const t = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const t = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' });
         const el = document.getElementById('sessionTime');
         if (el) el.textContent = t;
     }
@@ -1198,11 +1464,16 @@
         var wrap = document.getElementById('sessionBattery');
         var pctEl = document.getElementById('sessionBatteryPct');
         var fillEl = document.getElementById('sessionBatteryFill');
+        var bolt = document.getElementById('sessionBatteryCharging');
         if (!pctEl) return;
         var p = Math.round((level != null ? level : 1) * 100);
         p = Math.max(0, Math.min(100, p));
         pctEl.textContent = String(p);
         if (fillEl) fillEl.style.width = p + '%';
+        if (bolt) {
+            bolt.classList.toggle('panel-hidden', !charging);
+            bolt.setAttribute('aria-hidden', charging ? 'false' : 'true');
+        }
         if (wrap) {
             wrap.classList.toggle('session-battery-low', p <= 15 && !charging);
             wrap.title = charging ? 'Charging · ' + p : 'Battery · ' + p;
@@ -1222,8 +1493,12 @@
 
     (async function initSession() {
         try {
-            const r = await fetch('/api/student/current', { credentials: 'include' });
+            const r = await studentFetch('/api/student/current', {});
             const d = await r.json();
+            if (r.status === 401) {
+                clearStudentToken();
+                return;
+            }
             if (d.success && d.student) {
                 currentStudent = d.student;
                 myClasses = await loadClasses();
@@ -1235,6 +1510,10 @@
                 document.getElementById('backSession').classList.add('panel-hidden');
                 updateFrontName();
                 renderClassCards();
+                await ensureStudentSocketReady();
+                requestJoinStudentEnrollments();
+                startStudentLiveUpdates();
+                syncBackStatusBarVisibility();
             }
         } catch (e) {}
     })();

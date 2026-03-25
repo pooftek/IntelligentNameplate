@@ -12,6 +12,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
 from io import BytesIO
 import tempfile
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 # Load environment variables from .env file if present
 try:
@@ -25,7 +26,7 @@ _APP_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=os.path.join(_APP_DIR, 'templates'))
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-only-insecure-key')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///classroom_app.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///classroom_app.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -33,6 +34,54 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
+STUDENT_TOKEN_SALT = 'student-session'
+STUDENT_TOKEN_MAX_AGE = 7 * 24 * 60 * 60  # 7 days
+
+
+def _student_token_serializer():
+    return URLSafeTimedSerializer(app.secret_key, salt=STUDENT_TOKEN_SALT)
+
+
+def issue_student_token(student_id, needs_password=False):
+    return _student_token_serializer().dumps({'id': int(student_id), 'np': bool(needs_password)})
+
+
+def verify_student_token(token, max_age=STUDENT_TOKEN_MAX_AGE):
+    if not token or not isinstance(token, str):
+        return None, None
+    try:
+        data = _student_token_serializer().loads(token, max_age=max_age)
+        sid = data.get('id')
+        if sid is None:
+            return None, None
+        return int(sid), bool(data.get('np', False))
+    except (BadSignature, SignatureExpired, TypeError, ValueError, KeyError):
+        return None, None
+
+
+def _bearer_token_from_request():
+    auth = request.headers.get('Authorization', '') or ''
+    parts = auth.split(None, 1)
+    if len(parts) == 2 and parts[0].lower() == 'bearer':
+        t = parts[1].strip()
+        return t or None
+    return None
+
+
+def _authenticated_student_id():
+    token = _bearer_token_from_request()
+    student_id, _ = verify_student_token(token)
+    return student_id
+
+
+def _student_id_from_socket_token(data):
+    if not isinstance(data, dict):
+        return None
+    token = data.get('token')
+    student_id, _ = verify_student_token(token)
+    return student_id
+
 
 # Database Models
 class Professor(UserMixin, db.Model):
@@ -75,6 +124,7 @@ class Attendance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    class_session_id = db.Column(db.Integer, db.ForeignKey('class_session.id'), nullable=True)
     date = db.Column(db.Date, nullable=False)
     present = db.Column(db.Boolean, default=True)
     join_time = db.Column(db.DateTime, nullable=True)  # Time when student joined
@@ -82,6 +132,7 @@ class Attendance(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     class_obj = db.relationship('Class', backref=db.backref('attendances', lazy=True))
     student = db.relationship('Student', backref=db.backref('attendances', lazy=True))
+    class_session = db.relationship('ClassSession', backref=db.backref('attendances', lazy=True))
 
 class Participation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -161,6 +212,123 @@ class HandRaise(db.Model):
     class_obj = db.relationship('Class', backref=db.backref('hand_raises', lazy=True))
     student = db.relationship('Student', backref=db.backref('hand_raises', lazy=True))
 
+
+def get_active_class_session(class_id):
+    """Open ClassSession for this class, or None."""
+    return ClassSession.query.filter_by(
+        class_id=class_id,
+        end_time=None,
+    ).order_by(ClassSession.start_time.desc()).first()
+
+
+def count_graded_attendance_for_student(class_id, student_id):
+    """
+    Count how many graded (non-excluded) sessions the student attended.
+    Session-scoped rows use class_session_id; legacy rows (NULL session) match by date
+    only when there is a single graded session on that calendar day.
+    Returns (attended_count, total_graded_sessions).
+    """
+    sessions = ClassSession.query.filter_by(class_id=class_id).all()
+    graded = [s for s in sessions if not s.exclude_from_grading]
+    if not graded:
+        return 0, 0
+    all_att = Attendance.query.filter_by(class_id=class_id, student_id=student_id).all()
+    by_sid = {a.class_session_id: a for a in all_att if a.class_session_id is not None}
+    legacy = [a for a in all_att if a.class_session_id is None]
+    count = 0
+    for s in graded:
+        a = by_sid.get(s.id)
+        if a is not None:
+            if a.join_time is not None and a.present:
+                count += 1
+            continue
+        same_date_graded = [x for x in graded if x.start_time.date() == s.start_time.date()]
+        leg = next((a for a in legacy if a.date == s.start_time.date()), None)
+        if leg and leg.join_time is not None and leg.present and len(same_date_graded) == 1:
+            count += 1
+    return count, len(graded)
+
+
+def gradebook_poll_responses_by_student(class_id):
+    """Map student_id -> PollResponse rows that count toward the gradebook (graded + session window + not exclude_from_grading)."""
+    sessions = ClassSession.query.filter_by(class_id=class_id).all()
+    graded_windows = [s for s in sessions if not s.exclude_from_grading]
+    now = datetime.utcnow()
+    responses = (
+        PollResponse.query.join(Poll)
+        .filter(
+            Poll.class_id == class_id,
+            Poll.is_graded == True,
+        )
+        .all()
+    )
+    by_student = {}
+    for pr in responses:
+        poll = pr.poll
+        t = poll.created_at
+        matched = False
+        for s in graded_windows:
+            end = s.end_time or now
+            if s.start_time <= t <= end:
+                matched = True
+                break
+        if not matched:
+            continue
+        by_student.setdefault(pr.student_id, []).append(pr)
+    return by_student
+
+
+def poll_responses_for_gradebook(class_id, student_id):
+    """Single-student slice; prefer gradebook_poll_responses_by_student when looping all students."""
+    return gradebook_poll_responses_by_student(class_id).get(student_id, [])
+
+
+def deactivate_active_polls_for_class(class_id):
+    """Set all active polls for this class to inactive. Caller must commit. Returns poll ids that were active."""
+    active = Poll.query.filter_by(class_id=class_id, is_active=True).all()
+    ids = [p.id for p in active]
+    for p in active:
+        p.is_active = False
+    return ids
+
+
+def emit_poll_stopped_events(class_id, poll_ids):
+    for pid in poll_ids:
+        socketio.emit('poll_stopped', {'poll_id': pid}, room=f'class_{class_id}')
+
+
+def effective_attendance_and_poll_weights(class_id, grading_weights):
+    """
+    Redistribute poll_weight toward attendance for graded sessions with no poll in the session window.
+    Returns (effective_attendance_weight, effective_poll_weight).
+    """
+    sessions = ClassSession.query.filter_by(class_id=class_id).all()
+    graded = [s for s in sessions if not s.exclude_from_grading]
+    n = len(graded)
+    aw = float(grading_weights.attendance_weight)
+    pw = float(grading_weights.poll_weight)
+    if n == 0:
+        return aw, pw
+    now = datetime.utcnow()
+    sessions_with_poll = 0
+    for s in graded:
+        end = s.end_time or now
+        if (
+            Poll.query.filter(
+                Poll.class_id == class_id,
+                Poll.created_at >= s.start_time,
+                Poll.created_at <= end,
+            ).first()
+            is not None
+        ):
+            sessions_with_poll += 1
+    if sessions_with_poll == 0:
+        return aw + pw, 0.0
+    eff_poll = pw * (sessions_with_poll / n)
+    eff_att = aw + pw * ((n - sessions_with_poll) / n)
+    return eff_att, eff_poll
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return Professor.query.get(int(user_id))
@@ -232,7 +400,7 @@ def logout():
     # Stop all active classes for this professor before logging out
     active_classes = Class.query.filter_by(professor_id=current_user.id, is_active=True).all()
     end_time = datetime.utcnow()
-    today = end_time.date()
+    poll_stops_after_commit = []
     for class_obj in active_classes:
         class_obj.is_active = False
         # Close open session
@@ -241,13 +409,22 @@ def logout():
         ).order_by(ClassSession.start_time.desc()).first()
         if active_session:
             active_session.end_time = end_time
-        # Mark leave time for any present students
-        for att in Attendance.query.filter_by(class_id=class_obj.id, date=today, present=True).all():
-            if not att.leave_time:
-                att.leave_time = end_time
-        socketio.emit('class_stopped', {'class_id': class_obj.id}, room=f'class_{class_obj.id}')
+        # Mark leave time for students still in the active session
+        if active_session:
+            for att in Attendance.query.filter_by(
+                class_id=class_obj.id,
+                class_session_id=active_session.id,
+                present=True,
+            ).all():
+                if not att.leave_time:
+                    att.leave_time = end_time
+        for pid in deactivate_active_polls_for_class(class_obj.id):
+            poll_stops_after_commit.append((class_obj.id, pid))
+        socketio.emit('class_stopped', {'class_id': class_obj.id})
     if active_classes:
         db.session.commit()
+        for cid, pid in poll_stops_after_commit:
+            socketio.emit('poll_stopped', {'poll_id': pid}, room=f'class_{cid}')
     logout_user()
     return redirect(url_for('login'))
 
@@ -308,13 +485,7 @@ def classroom(class_id):
         db.session.add(settings)
         db.session.commit()
     
-    # Get active session for attendance grading setting
-    active_session = ClassSession.query.filter_by(
-        class_id=class_id,
-        end_time=None
-    ).order_by(ClassSession.start_time.desc()).first()
-    
-    return render_template('classroom.html', class_obj=class_obj, students=students, settings=settings, active_session=active_session)
+    return render_template('classroom.html', class_obj=class_obj, students=students, settings=settings)
 
 @app.route('/classroom/<int:class_id>/students')
 @login_required
@@ -379,8 +550,10 @@ def start_class(class_id):
 
     db.session.commit()
 
-    socketio.emit('class_started', {'class_id': class_id, 'class_code': class_obj.class_code}, room=f'class_{class_id}')
-    
+    # Broadcast so every connected client sees it immediately (room-only can miss students on My Classes)
+    started_payload = {'class_id': class_id, 'class_code': class_obj.class_code}
+    socketio.emit('class_started', started_payload)
+
     return jsonify({'success': True, 'redirect': url_for('faculty_dashboard', class_id=class_id)})
 
 @app.route('/api/stop_class/<int:class_id>', methods=['POST'])
@@ -402,26 +575,30 @@ def stop_class(class_id):
     if active_session:
         active_session.end_time = end_time
     
-    # Log leave_time for all students who are present (auto-logout)
-    today = datetime.utcnow().date()
-    attendances = Attendance.query.filter_by(
-        class_id=class_id,
-        date=today,
-        present=True
-    ).all()
-    
-    for attendance in attendances:
-        # Only set leave_time if not already set (in case of early logout)
-        if not attendance.leave_time:
-            attendance.leave_time = end_time
-    
+    # Log leave_time for students still in this session (auto-logout at class end)
+    if active_session:
+        attendances = Attendance.query.filter_by(
+            class_id=class_id,
+            class_session_id=active_session.id,
+            present=True,
+        ).all()
+        for attendance in attendances:
+            if not attendance.leave_time:
+                attendance.leave_time = end_time
+
+    poll_ids_stopped = deactivate_active_polls_for_class(class_id)
+
     db.session.commit()
-    
-    # Update gradebook with participation data
+
+    emit_poll_stopped_events(class_id, poll_ids_stopped)
+
+    # Notify students immediately — must run before update_gradebook (can take many seconds)
+    stopped_payload = {'class_id': class_id}
+    socketio.emit('class_stopped', stopped_payload)
+
+    # Update gradebook with participation data (heavy; do not block real-time events above)
     update_gradebook(class_id)
-    
-    socketio.emit('class_stopped', {'class_id': class_id}, room=f'class_{class_id}')
-    
+
     return jsonify({'success': True})
 
 def update_gradebook(class_id):
@@ -429,14 +606,15 @@ def update_gradebook(class_id):
     students = db.session.query(Student).join(Enrollment).filter(
         Enrollment.class_id == class_id
     ).all()
-    
+    poll_map = gradebook_poll_responses_by_student(class_id)
+
     for student in students:
         participation = Participation.query.filter_by(
             class_id=class_id,
             student_id=student.id,
             date=today
         ).first()
-        
+
         if not participation:
             participation = Participation(
                 class_id=class_id,
@@ -444,21 +622,14 @@ def update_gradebook(class_id):
                 date=today
             )
             db.session.add(participation)
-        
-        # Graded polls only (matches gradebook)
-        poll_responses = PollResponse.query.join(Poll).filter(
-            Poll.class_id == class_id,
-            PollResponse.student_id == student.id,
-            Poll.created_at >= datetime.combine(today, datetime.min.time()),
-            Poll.is_graded == True,
-        ).all()
-        
+
+        poll_responses = poll_map.get(student.id, [])
         poll_grade = 0.0
         if poll_responses:
             correct_count = sum(1 for pr in poll_responses if pr.is_correct)
             poll_grade = (correct_count / len(poll_responses)) * 100
-        
-        db.session.commit()
+
+    db.session.commit()
 
 @app.route('/faculty_dashboard/<int:class_id>')
 @login_required
@@ -502,37 +673,21 @@ def get_gradebook(class_id):
     ).all()
     
     gradebook_data = []
+    poll_map = gradebook_poll_responses_by_student(class_id)
+    eff_att_w, eff_poll_w = effective_attendance_and_poll_weights(class_id, grading_weights)
     for student in students:
-        attendances = Attendance.query.filter_by(
-            class_id=class_id,
-            student_id=student.id
-        ).all()
-        
+        attendance_count, total_graded_classes = count_graded_attendance_for_student(class_id, student.id)
+        attendance_grade = (attendance_count / total_graded_classes * 100) if total_graded_classes > 0 else 0
+
         participations = Participation.query.filter_by(
             class_id=class_id,
             student_id=student.id
         ).all()
-        
-        # Only count graded polls in poll grade calculation
-        poll_responses = PollResponse.query.join(Poll).filter(
-            Poll.class_id == class_id,
-            PollResponse.student_id == student.id,
-            Poll.is_graded == True
-        ).all()
-        
-        # Calculate attendance, excluding sessions marked as exclude_from_grading
-        # Get all session dates that count toward grading
-        sessions = ClassSession.query.filter_by(class_id=class_id).all()
-        graded_session_dates = {s.start_time.date() for s in sessions if not s.exclude_from_grading}
-        
-        # Count attendance only for sessions that count toward grading
-        attendance_count = sum(1 for a in attendances if a.present and a.date in graded_session_dates)
-        total_graded_classes = len(graded_session_dates)
-        attendance_grade = (attendance_count / total_graded_classes * 100) if total_graded_classes > 0 else 0
-        
+
+        poll_responses = poll_map.get(student.id, [])
         avg_peer_grade = sum(p.peer_grade for p in participations) / len(participations) if participations else 0
         avg_instructor_grade = sum(p.instructor_grade for p in participations) / len(participations) if participations else 0
-        
+
         poll_grade = 0
         if poll_responses:
             correct_count = sum(1 for pr in poll_responses if pr.is_correct)
@@ -540,10 +695,10 @@ def get_gradebook(class_id):
         
         # Calculate overall grade using weighted average
         overall_grade = (
-            (attendance_grade * grading_weights.attendance_weight / 100) +
+            (attendance_grade * eff_att_w / 100) +
             (avg_instructor_grade * grading_weights.instructor_participation_weight / 100) +
             (avg_peer_grade * grading_weights.peer_participation_weight / 100) +
-            (poll_grade * grading_weights.poll_weight / 100)
+            (poll_grade * eff_poll_w / 100)
         )
         
         gradebook_data.append({
@@ -602,43 +757,31 @@ def export_gradebook(class_id):
         cell.font = header_font
     
     # Calculate grades for each student (same logic as get_gradebook)
-    sessions = ClassSession.query.filter_by(class_id=class_id).all()
-    graded_session_dates = {s.start_time.date() for s in sessions if not s.exclude_from_grading}
-    
+    poll_map = gradebook_poll_responses_by_student(class_id)
+    eff_att_w, eff_poll_w = effective_attendance_and_poll_weights(class_id, grading_weights)
     for student in students:
-        attendances = Attendance.query.filter_by(
-            class_id=class_id,
-            student_id=student.id
-        ).all()
-        
+        attendance_count, total_graded_classes = count_graded_attendance_for_student(class_id, student.id)
+        attendance_grade = (attendance_count / total_graded_classes * 100) if total_graded_classes > 0 else 0
+
         participations = Participation.query.filter_by(
             class_id=class_id,
             student_id=student.id
         ).all()
-        
-        poll_responses = PollResponse.query.join(Poll).filter(
-            Poll.class_id == class_id,
-            PollResponse.student_id == student.id,
-            Poll.is_graded == True
-        ).all()
-        
-        attendance_count = sum(1 for a in attendances if a.present and a.date in graded_session_dates)
-        total_graded_classes = len(graded_session_dates)
-        attendance_grade = (attendance_count / total_graded_classes * 100) if total_graded_classes > 0 else 0
-        
+
+        poll_responses = poll_map.get(student.id, [])
         avg_peer_grade = sum(p.peer_grade for p in participations) / len(participations) if participations else 0
         avg_instructor_grade = sum(p.instructor_grade for p in participations) / len(participations) if participations else 0
-        
+
         poll_grade = 0
         if poll_responses:
             correct_count = sum(1 for pr in poll_responses if pr.is_correct)
             poll_grade = (correct_count / len(poll_responses)) * 100
         
         overall_grade = (
-            (attendance_grade * grading_weights.attendance_weight / 100) +
+            (attendance_grade * eff_att_w / 100) +
             (avg_instructor_grade * grading_weights.instructor_participation_weight / 100) +
             (avg_peer_grade * grading_weights.peer_participation_weight / 100) +
-            (poll_grade * grading_weights.poll_weight / 100)
+            (poll_grade * eff_poll_w / 100)
         )
         
         row = [
@@ -699,14 +842,26 @@ def get_class_metrics(class_id):
         session_date = session.start_time.date()
         session_start = session.start_time
         session_end = session.end_time if session.end_time else datetime.utcnow()
-        
-        # Get present students count
-        present_students = Attendance.query.filter_by(
+
+        session_att_records = Attendance.query.filter_by(
             class_id=class_id,
-            date=session_date,
-            present=True
+            class_session_id=session.id
         ).all()
-        attendance_count = len(present_students)
+        attendance_map = {att.student_id: att for att in session_att_records}
+        same_day_sessions = [s for s in sessions if s.start_time.date() == session_date]
+        if len(same_day_sessions) == 1:
+            for att in Attendance.query.filter_by(
+                class_id=class_id,
+                date=session_date,
+                class_session_id=None
+            ).all():
+                if att.student_id not in attendance_map:
+                    attendance_map[att.student_id] = att
+
+        attendance_count = sum(
+            1 for st in enrolled_students
+            if attendance_map.get(st.id) and attendance_map[st.id].join_time is not None
+        )
         
         # Calculate attendance percentage based on total enrolled students
         total_enrolled = len(enrolled_students)
@@ -721,12 +876,10 @@ def get_class_metrics(class_id):
         ).all()
         unique_hands_raised = len(set(hr.student_id for hr in hand_raises_during_session))
         
-        # Graded polls only — ungraded polls excluded from class metrics
         polls = Poll.query.filter(
             Poll.class_id == class_id,
             Poll.created_at >= session_start,
             Poll.created_at <= session_end,
-            Poll.is_graded == True,
         ).all()
         
         poll_results = []
@@ -755,44 +908,32 @@ def get_class_metrics(class_id):
         # Calculate overall poll vote percentage for the session
         poll_vote_percentage = (len(unique_poll_voters) / attendance_count * 100) if attendance_count > 0 else 0
         
-        # Get attendance records for this session date
-        attendances = Attendance.query.filter_by(
-            class_id=class_id,
-            date=session_date
-        ).all()
-        
-        # Create a map of student_id to attendance record
-        attendance_map = {att.student_id: att for att in attendances}
-        
-        # Build attendance list with ALL enrolled students
+        # Build attendance list with ALL enrolled students (attendance_map built above)
         attendance_list = []
         for student in enrolled_students:
             att = attendance_map.get(student.id)
-            
+
             if att:
                 sign_in_time = att.join_time if att.join_time else att.timestamp
-                # Only show sign out time if student left before professor ended the class
-                # If class hasn't ended (session_end is None or is current time), show leave_time if it exists
-                # If class has ended, only show leave_time if it's before the session end time
                 sign_out_time = None
                 if att.leave_time:
                     if session.end_time is None:
-                        # Class hasn't ended yet, show leave_time if it exists (early logout)
                         sign_out_time = att.leave_time
-                    elif att.leave_time < session.end_time:
-                        # Class has ended, only show if student left before class ended
+                    elif att.leave_time <= session.end_time:
+                        # Early logout (before end) or exit stamped when teacher ends class (same timestamp)
                         sign_out_time = att.leave_time
             else:
                 sign_in_time = None
                 sign_out_time = None
-            
+
+            attended_session = bool(att and att.join_time is not None)
             attendance_list.append({
                 'student_id': student.id,
                 'student_number': student.student_number,
                 'student_name': f"{student.preferred_name or student.first_name} {student.last_name}",
                 'sign_in_time': sign_in_time.isoformat() if sign_in_time else None,
                 'sign_out_time': sign_out_time.isoformat() if sign_out_time else None,
-                'present': att.present if att else False
+                'present': attended_session
             })
         
         sessions_data.append({
@@ -892,23 +1033,24 @@ def update_settings(class_id):
     settings.show_first_name_only = data.get('show_first_name_only', False)
     settings.quiet_mode = data.get('quiet_mode', False)
     
-    # Update current session's exclude_from_grading if provided
-    if 'exclude_from_grading' in data:
-        active_session = ClassSession.query.filter_by(
-            class_id=class_id,
-            end_time=None
-        ).order_by(ClassSession.start_time.desc()).first()
-        
-        if active_session:
-            active_session.exclude_from_grading = data.get('exclude_from_grading', False)
+    active_session = ClassSession.query.filter_by(
+        class_id=class_id,
+        end_time=None
+    ).order_by(ClassSession.start_time.desc()).first()
+    
+    if 'exclude_from_grading' in data and active_session:
+        active_session.exclude_from_grading = data.get('exclude_from_grading', False)
     
     db.session.commit()
     
-    socketio.emit('settings_updated', {
+    settings_payload = {
+        'class_id': class_id,
         'show_first_name_only': settings.show_first_name_only,
         'quiet_mode': settings.quiet_mode,
-        'exclude_from_grading': active_session.exclude_from_grading if active_session else False
-    }, room=f'class_{class_id}')
+        'exclude_from_grading': active_session.exclude_from_grading if active_session else False,
+    }
+    socketio.emit('settings_updated', settings_payload, room=f'class_{class_id}')
+    socketio.emit('settings_updated', settings_payload, room=f'enrolled_{class_id}')
     
     return jsonify({'success': True})
 
@@ -1986,19 +2128,17 @@ def student_login():
             if not student_on_active_roster(student.id):
                 return jsonify({'success': False, 'error': 'You are not registered in any class. Please contact your professor.'})
             if not student.password_hash:
-                session['student_id'] = student.id
-                session['needs_password'] = True
                 return jsonify({
                     'success': True,
                     'needs_password': True,
                     'student': _student_login_payload(student),
+                    'token': issue_student_token(student.id, needs_password=True),
                 })
-            session['student_id'] = student.id
-            session['needs_password'] = False
             return jsonify({
                 'success': True,
                 'needs_password': False,
                 'student': {k: v for k, v in _student_login_payload(student).items() if k != 'email'},
+                'token': issue_student_token(student.id, needs_password=False),
             })
 
     # Student number or email + password
@@ -2009,22 +2149,20 @@ def student_login():
         if not student_on_active_roster(student.id):
             return jsonify({'success': False, 'error': 'You are not registered in any class. Please contact your professor.'})
         if not student.password_hash:
-            session['student_id'] = student.id
-            session['needs_password'] = True
             return jsonify({
                 'success': True,
                 'needs_password': True,
                 'student': _student_login_payload(student),
+                'token': issue_student_token(student.id, needs_password=True),
             })
         if not password:
             return jsonify({'success': False, 'error': 'Please enter your password.'})
         if check_password_hash(student.password_hash, password):
-            session['student_id'] = student.id
-            session['needs_password'] = False
             return jsonify({
                 'success': True,
                 'needs_password': False,
                 'student': {k: v for k, v in _student_login_payload(student).items() if k != 'email'},
+                'token': issue_student_token(student.id, needs_password=False),
             })
         return jsonify({'success': False, 'error': 'Invalid student number, email, or password.'})
 
@@ -2052,9 +2190,6 @@ def find_student_for_password():
     if not student_on_active_roster(student.id):
         return jsonify({'success': False, 'error': 'You are not registered in any class. Please contact your professor.'})
     
-    # Set session for password setup
-    session['student_id'] = student.id
-    
     return jsonify({
         'success': True,
         'student': {
@@ -2064,13 +2199,14 @@ def find_student_for_password():
             'last_name': student.last_name,
             'email': student.email,
             'has_password': student.password_hash is not None
-        }
+        },
+        'token': issue_student_token(student.id, needs_password=student.password_hash is None),
     })
 
 @app.route('/api/student/set_password', methods=['POST'])
 def student_set_password():
     """Set password for student on first login"""
-    student_id = session.get('student_id')
+    student_id = _authenticated_student_id()
     if not student_id:
         return jsonify({'success': False, 'error': 'Not authenticated. Please find your account first using the "Set Password / Register" option.'})
     
@@ -2098,8 +2234,6 @@ def student_set_password():
     student.password_hash = generate_password_hash(password)
     db.session.commit()
     
-    session['needs_password'] = False
-    
     return jsonify({
         'success': True,
         'message': 'Password set successfully',
@@ -2109,13 +2243,14 @@ def student_set_password():
             'first_name': student.first_name,
             'last_name': student.last_name,
             'preferred_name': student.preferred_name,
-        }
+        },
+        'token': issue_student_token(student.id, needs_password=False),
     })
 
 @app.route('/api/student/current', methods=['GET'])
 def get_current_student():
     """Get current logged-in student info"""
-    student_id = session.get('student_id')
+    student_id = _authenticated_student_id()
     if not student_id:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
@@ -2137,16 +2272,15 @@ def get_current_student():
 
 @app.route('/api/student/classes')
 def get_active_classes():
-    """Active classes where student is on roster (enrollment active). Requires login."""
-    student_id = session.get('student_id')
+    """All classes where student is actively enrolled. Includes live and not-live sessions."""
+    student_id = _authenticated_student_id()
     if not student_id:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
     rows = db.session.query(Class).join(Enrollment).filter(
         Enrollment.student_id == student_id,
         Enrollment.is_active == True,
-        Class.is_active == True,
-    ).all()
+    ).order_by(Class.name).all()
 
     out = []
     for c in rows:
@@ -2157,12 +2291,13 @@ def get_active_classes():
             'class_code': c.class_code,
             'is_active': c.is_active,
             'show_first_name_only': bool(settings and settings.show_first_name_only),
+            'quiet_mode': bool(settings and settings.quiet_mode),
         })
     return jsonify(out)
 
 @app.route('/api/student/join_class', methods=['POST'])
 def student_join_class():
-    student_id = session.get('student_id')
+    student_id = _authenticated_student_id()
     if not student_id:
         return jsonify({'success': False, 'error': 'Not logged in'})
     
@@ -2181,30 +2316,35 @@ def student_join_class():
     if not enrollment:
         return jsonify({'success': False, 'error': 'You are not enrolled in this class.'})
     
-    # Mark attendance and log join time
-    today = datetime.utcnow().date()
+    active_session = get_active_class_session(class_id)
+    if not active_session:
+        return jsonify({'success': False, 'error': 'No active class session. Ask your instructor to start the class.'})
+
     join_time = datetime.utcnow()
+    session_date = active_session.start_time.date()
     attendance = Attendance.query.filter_by(
         class_id=class_id,
         student_id=student_id,
-        date=today
+        class_session_id=active_session.id,
     ).first()
-    
+
     if not attendance:
         attendance = Attendance(
             class_id=class_id,
             student_id=student_id,
-            date=today,
+            class_session_id=active_session.id,
+            date=session_date,
             present=True,
-            join_time=join_time
+            join_time=join_time,
+            leave_time=None,
         )
         db.session.add(attendance)
     else:
-        # Update join_time if not set (in case of re-join)
+        attendance.present = True
+        attendance.leave_time = None
         if not attendance.join_time:
             attendance.join_time = join_time
-        attendance.present = True
-    
+
     db.session.commit()
     
     socketio.emit('student_joined', {
@@ -2218,29 +2358,30 @@ def student_join_class():
 @app.route('/api/student/leave_class', methods=['POST'])
 def student_leave_class():
     """Record leave time for today without ending student session (return to class list)."""
-    student_id = session.get('student_id')
+    student_id = _authenticated_student_id()
     if not student_id:
         return jsonify({'success': False, 'error': 'Not logged in'})
     data = request.get_json() or {}
     class_id = data.get('class_id')
     if not class_id:
         return jsonify({'success': False, 'error': 'Class ID required'})
-    today = datetime.utcnow().date()
     leave_time = datetime.utcnow()
-    attendance = Attendance.query.filter_by(
-        class_id=class_id,
-        student_id=student_id,
-        date=today,
-    ).first()
-    if attendance:
-        attendance.leave_time = leave_time
-        db.session.commit()
+    active_session = get_active_class_session(class_id)
+    if active_session:
+        attendance = Attendance.query.filter_by(
+            class_id=class_id,
+            student_id=student_id,
+            class_session_id=active_session.id,
+        ).first()
+        if attendance:
+            attendance.leave_time = leave_time
+            db.session.commit()
     return jsonify({'success': True})
 
 
 @app.route('/api/student/logout', methods=['POST'])
 def student_logout():
-    student_id = session.get('student_id')
+    student_id = _authenticated_student_id()
     if not student_id:
         return jsonify({'success': False, 'error': 'Not logged in'})
     
@@ -2248,29 +2389,27 @@ def student_logout():
     class_id = data.get('class_id')
     
     if class_id:
-        # Log leave time for this class
-        today = datetime.utcnow().date()
         leave_time = datetime.utcnow()
-        
-        attendance = Attendance.query.filter_by(
-            class_id=class_id,
-            student_id=student_id,
-            date=today
-        ).first()
-        
-        if attendance:
-            attendance.leave_time = leave_time
-            db.session.commit()
+        active_session = get_active_class_session(class_id)
+        if active_session:
+            attendance = Attendance.query.filter_by(
+                class_id=class_id,
+                student_id=student_id,
+                class_session_id=active_session.id,
+            ).first()
+            if attendance:
+                attendance.leave_time = leave_time
+                db.session.commit()
     
-    # Clear session
     session.pop('student_id', None)
+    session.pop('needs_password', None)
     
     return jsonify({'success': True})
 
 @app.route('/api/student/interaction', methods=['POST'])
 def student_interaction():
     try:
-        student_id = session.get('student_id')
+        student_id = _authenticated_student_id()
         if not student_id:
             return jsonify({'success': False, 'error': 'Not logged in'})
         
@@ -2419,7 +2558,7 @@ def student_interaction():
 
 @app.route('/api/student/poll_response', methods=['POST'])
 def student_poll_response():
-    student_id = session.get('student_id')
+    student_id = _authenticated_student_id()
     if not student_id:
         return jsonify({'success': False, 'error': 'Not logged in'})
     
@@ -2491,13 +2630,15 @@ def live_dashboard(class_id):
         Enrollment.is_active == True
     ).count()
     
-    # Get students currently in the class (joined today, not yet left)
-    present_students = db.session.query(Student).join(Attendance).filter(
-        Attendance.class_id == class_id,
-        Attendance.date == today,
-        Attendance.present == True,
-        Attendance.leave_time == None
-    ).all()
+    active_session = get_active_class_session(class_id)
+    if active_session:
+        present_students = db.session.query(Student).join(Attendance).filter(
+            Attendance.class_id == class_id,
+            Attendance.class_session_id == active_session.id,
+            Attendance.leave_time == None,
+        ).all()
+    else:
+        present_students = []
 
     # Get hands raised (not cleared, ordered by timestamp)
     hands_raised = db.session.query(HandRaise, Student).join(Student).filter(
@@ -2525,14 +2666,10 @@ def live_dashboard(class_id):
         date=today
     ).all()
     
-    unique_participants = len(set(p.student_id for p in participations if (p.hand_raises or 0) + (p.thumbs_up or 0) + (p.thumbs_down or 0) > 0))
+    # Hand raises only — thumbs up/down must not affect this metric (faculty live "Unique Participation")
+    unique_participants = len({p.student_id for p in participations if (p.hand_raises or 0) > 0})
     
     # Get thumbs up/down counts (only from current session)
-    active_session = ClassSession.query.filter_by(
-        class_id=class_id,
-        end_time=None
-    ).order_by(ClassSession.start_time.desc()).first()
-    
     thumbs_up_count = 0
     thumbs_down_count = 0
     if active_session:
@@ -2596,44 +2733,39 @@ def live_attendance(class_id):
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     today = datetime.utcnow().date()
-    
+
     # Get all enrolled students
     enrolled_students = db.session.query(Student).join(Enrollment).filter(
         Enrollment.class_id == class_id,
         Enrollment.is_active == True
     ).all()
-    
-    # Get students currently present (joined and not yet left)
-    present_student_ids = set(
-        id[0] for id in db.session.query(Attendance.student_id).filter(
-            Attendance.class_id == class_id,
-            Attendance.date == today,
-            Attendance.present == True,
-            Attendance.leave_time == None
-        ).all()
-    )
-    
+
+    active_session = get_active_class_session(class_id)
+    if active_session:
+        present_student_ids = set(
+            id[0] for id in db.session.query(Attendance.student_id).filter(
+                Attendance.class_id == class_id,
+                Attendance.class_session_id == active_session.id,
+                Attendance.leave_time == None,
+            ).all()
+        )
+    else:
+        present_student_ids = set()
+
     # Get participation data for all students
     participations = Participation.query.filter_by(
         class_id=class_id,
         date=today
     ).all()
     participation_map = {p.student_id: p for p in participations}
-    
-    # Get poll grades
-    poll_responses = PollResponse.query.join(Poll).filter(
-        Poll.class_id == class_id,
-        Poll.is_graded == True
-    ).all()
-    
+
+    poll_map = gradebook_poll_responses_by_student(class_id)
     poll_grades = {}
-    for response in poll_responses:
-        student_id = response.student_id
-        if student_id not in poll_grades:
-            poll_grades[student_id] = {'correct': 0, 'total': 0}
-        poll_grades[student_id]['total'] += 1
-        if response.is_correct:
-            poll_grades[student_id]['correct'] += 1
+    for student_id, responses in poll_map.items():
+        poll_grades[student_id] = {
+            'correct': sum(1 for pr in responses if pr.is_correct),
+            'total': len(responses),
+        }
     
     present_students = []
     absent_students = []
@@ -2743,6 +2875,7 @@ def reset_thumbs_up(class_id):
             p.thumbs_up = 0
     
     db.session.commit()
+    socketio.emit('thumbs_reactions_cleared', {'class_id': class_id}, room=f'class_{class_id}')
     
     return jsonify({'success': True})
 
@@ -2765,13 +2898,14 @@ def reset_thumbs_down(class_id):
             p.thumbs_down = 0
     
     db.session.commit()
+    socketio.emit('thumbs_reactions_cleared', {'class_id': class_id}, room=f'class_{class_id}')
     
     return jsonify({'success': True})
 
 @app.route('/api/student/interaction_state/<int:class_id>')
 def get_student_interaction_state(class_id):
     """Get current interaction states for logged-in student"""
-    student_id = session.get('student_id')
+    student_id = _authenticated_student_id()
     if not student_id:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
@@ -2831,6 +2965,21 @@ def poll_results(poll_id):
 def on_connect():
     emit('connected', {'data': 'Connected'})
 
+@socketio.on('join_student_enrollments')
+def on_join_student_enrollments(data=None):
+    """Join Socket.IO rooms so this client receives class_started / class_stopped while on My Classes."""
+    student_id = _student_id_from_socket_token(data)
+    if not student_id:
+        return
+    enrollments = Enrollment.query.filter_by(
+        student_id=student_id,
+        is_active=True,
+    ).all()
+    for e in enrollments:
+        join_room(f'enrolled_{e.class_id}')
+    emit('enrolled_feed_ready', {'class_ids': [e.class_id for e in enrollments]})
+
+
 @socketio.on('join_class')
 def on_join_class(data):
     class_id = data.get('class_id')
@@ -2853,12 +3002,15 @@ def on_get_live_stats(data):
     ).all()
     
     today = datetime.utcnow().date()
-    present_students = db.session.query(Student).join(Attendance).filter(
-        Attendance.class_id == class_id,
-        Attendance.date == today,
-        Attendance.present == True,
-        Attendance.leave_time == None
-    ).all()
+    active_session = get_active_class_session(class_id)
+    if active_session:
+        present_students = db.session.query(Student).join(Attendance).filter(
+            Attendance.class_id == class_id,
+            Attendance.class_session_id == active_session.id,
+            Attendance.leave_time == None,
+        ).all()
+    else:
+        present_students = []
 
     participations = Participation.query.filter_by(
         class_id=class_id,
@@ -2910,10 +3062,10 @@ def migrate_database():
                 try:
                     db.session.execute(text('ALTER TABLE student ADD COLUMN preferred_name VARCHAR(100)'))
                     db.session.commit()
-                    print("✓ Added preferred_name column to student table")
+                    print("[OK] Added preferred_name column to student table")
                 except Exception as e:
                     db.session.rollback()
-                    print(f"✗ Error adding preferred_name column: {e}")
+                    print(f"[ERROR] Error adding preferred_name column: {e}")
             
             if 'email' not in student_columns:
                 try:
@@ -2936,22 +3088,22 @@ def migrate_database():
                         )
                     
                     db.session.commit()
-                    print("✓ Added email column to student table")
+                    print("[OK] Added email column to student table")
                     if students_without_email:
                         print(f"  → Updated {len(students_without_email)} existing students with placeholder emails")
                         print("  → Please update student emails via Excel import or manual edit")
                 except Exception as e:
                     db.session.rollback()
-                    print(f"✗ Error adding email column: {e}")
+                    print(f"[ERROR] Error adding email column: {e}")
             
             if 'password_hash' not in student_columns:
                 try:
                     db.session.execute(text('ALTER TABLE student ADD COLUMN password_hash VARCHAR(255)'))
                     db.session.commit()
-                    print("✓ Added password_hash column to student table")
+                    print("[OK] Added password_hash column to student table")
                 except Exception as e:
                     db.session.rollback()
-                    print(f"✗ Error adding password_hash column: {e}")
+                    print(f"[ERROR] Error adding password_hash column: {e}")
         
         # Check if attendance table exists and add missing columns
         if 'attendance' in table_names:
@@ -2961,19 +3113,29 @@ def migrate_database():
                 try:
                     db.session.execute(text('ALTER TABLE attendance ADD COLUMN join_time DATETIME'))
                     db.session.commit()
-                    print("✓ Added join_time column to attendance table")
+                    print("[OK] Added join_time column to attendance table")
                 except Exception as e:
                     db.session.rollback()
-                    print(f"✗ Error adding join_time column: {e}")
+                    print(f"[ERROR] Error adding join_time column: {e}")
             
             if 'leave_time' not in attendance_columns:
                 try:
                     db.session.execute(text('ALTER TABLE attendance ADD COLUMN leave_time DATETIME'))
                     db.session.commit()
-                    print("✓ Added leave_time column to attendance table")
+                    print("[OK] Added leave_time column to attendance table")
                 except Exception as e:
                     db.session.rollback()
-                    print(f"✗ Error adding leave_time column: {e}")
+                    print(f"[ERROR] Error adding leave_time column: {e}")
+
+            attendance_columns = [col['name'] for col in inspector.get_columns('attendance')]
+            if 'class_session_id' not in attendance_columns:
+                try:
+                    db.session.execute(text('ALTER TABLE attendance ADD COLUMN class_session_id INTEGER'))
+                    db.session.commit()
+                    print("[OK] Added class_session_id column to attendance table")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERROR] Error adding class_session_id column: {e}")
         
         # Check if poll table exists and add is_graded column
         if 'poll' in table_names:
@@ -2982,10 +3144,10 @@ def migrate_database():
                 try:
                     db.session.execute(text('ALTER TABLE poll ADD COLUMN is_graded BOOLEAN DEFAULT 0'))
                     db.session.commit()
-                    print("✓ Added is_graded column to poll table")
+                    print("[OK] Added is_graded column to poll table")
                 except Exception as e:
                     db.session.rollback()
-                    print(f"✗ Error adding is_graded column: {e}")
+                    print(f"[ERROR] Error adding is_graded column: {e}")
         
         # Check if class_session table exists and add exclude_from_grading column
         if 'class_session' in table_names:
@@ -2994,10 +3156,10 @@ def migrate_database():
                 try:
                     db.session.execute(text('ALTER TABLE class_session ADD COLUMN exclude_from_grading BOOLEAN DEFAULT 0'))
                     db.session.commit()
-                    print("✓ Added exclude_from_grading column to class_session table")
+                    print("[OK] Added exclude_from_grading column to class_session table")
                 except Exception as e:
                     db.session.rollback()
-                    print(f"✗ Error adding exclude_from_grading column: {e}")
+                    print(f"[ERROR] Error adding exclude_from_grading column: {e}")
         
         # Check if enrollment table exists and if is_active column exists
         if 'enrollment' in table_names:
@@ -3006,24 +3168,24 @@ def migrate_database():
                 try:
                     db.session.execute(text('ALTER TABLE enrollment ADD COLUMN is_active BOOLEAN DEFAULT 1'))
                     db.session.commit()
-                    print("✓ Added is_active column to enrollment table")
+                    print("[OK] Added is_active column to enrollment table")
                 except Exception as e:
                     db.session.rollback()
-                    print(f"✗ Error adding is_active column: {e}")
+                    print(f"[ERROR] Error adding is_active column: {e}")
         
         # Check if hand_raise table exists
         if 'hand_raise' not in table_names:
             try:
                 # Table will be created by create_all
-                print("✓ hand_raise table will be created")
+                print("[OK] hand_raise table will be created")
             except Exception as e:
-                print(f"✗ Error with hand_raise table: {e}")
+                print(f"[ERROR] Error with hand_raise table: {e}")
         
         # Ensure all tables exist - create_all will handle new tables
         db.create_all()
-        print("✓ Database migration completed")
+        print("[OK] Database migration completed")
     except Exception as e:
-        print(f"✗ Error during database migration: {e}")
+        print(f"[ERROR] Error during database migration: {e}")
 
 if __name__ == '__main__':
     with app.app_context():
@@ -3040,5 +3202,12 @@ if __name__ == '__main__':
             db.session.add(default_prof)
             db.session.commit()
     
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    _debug = os.environ.get('TESTING') != '1'
+    socketio.run(
+        app,
+        debug=_debug,
+        host='0.0.0.0',
+        port=int(os.environ.get('PORT', '5000')),
+        allow_unsafe_werkzeug=True,
+    )
 

@@ -285,29 +285,6 @@
                 
                 <hr class="my-4">
                 
-                <h6 class="mb-3">Attendance Settings</h6>
-                <form id="attendanceSettingsForm">
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="excludeFromGrading" 
-                               {{ 'checked' if active_session and active_session.exclude_from_grading else '' }}
-                               {{ 'disabled' if not active_session else '' }}>
-                        <label class="form-check-label" for="excludeFromGrading">
-                            Exclude Current Session from Grading
-                        </label>
-                        {% if not active_session %}
-                        <small class="form-text text-muted d-block mt-1">
-                            No active class session. Start a class session to change this setting.
-                        </small>
-                        {% else %}
-                        <small class="form-text text-muted d-block mt-1">
-                            When enabled, attendance for the current class session will not count toward student grades.
-                        </small>
-                        {% endif %}
-                    </div>
-                </form>
-                
-                <hr class="my-4">
-                
                 <h6 class="mb-3 text-danger">Danger Zone</h6>
                 <button type="button" class="btn btn-danger" onclick="deleteClass()">
                     <i class="bi bi-trash"></i> Delete Class
@@ -406,15 +383,11 @@ async function handleStartClass() {
 }
 
 async function startClass() {
-    // Get exclude_from_grading preference if modal exists, otherwise default to false
-    const excludeFromGrading = document.getElementById('excludeFromGrading') ? 
-        document.getElementById('excludeFromGrading').checked : false;
-    
     const response = await fetch(`/api/start_class/{{ class_obj.id }}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
-            exclude_from_grading: excludeFromGrading
+            exclude_from_grading: false
         })
     });
     const data = await response.json();
@@ -444,8 +417,7 @@ async function saveSettings() {
         class_name: document.getElementById('className').value.trim(),
         class_code: document.getElementById('classCode').value.trim(),
         show_first_name_only: document.getElementById('showFirstNameOnly').checked,
-        quiet_mode: document.getElementById('quietMode').checked,
-        exclude_from_grading: document.getElementById('excludeFromGrading').checked
+        quiet_mode: document.getElementById('quietMode').checked
     };
     
     if (!data.class_name || !data.class_code) {

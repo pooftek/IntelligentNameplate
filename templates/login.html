@@ -3,56 +3,110 @@
 {% block title %}Comet — Login{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-    body {
-        zoom: 1.25;
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
-        height: 100vh;
-        margin: 0;
-        overflow: hidden;
-        padding-top: 15vh;
-    }
-    
-    .login-title {
-        font-size: clamp(1.75rem, 5vw, 2.5rem);
-        font-weight: bold;
-    }
-    
-    .login-card {
-        width: clamp(300px, 90vw, 450px);
-        padding: clamp(30px, 5vw, 50px);
-    }
-    
-    .login-subtitle {
-        font-size: clamp(0.9rem, 2vw, 1rem);
-    }
+  body {
+    background: #FFFFFF !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 2rem 1rem;
+    overflow-y: auto;
+  }
+  .login-logo {
+    width: clamp(160px, 40vw, 220px);
+    height: auto;
+    margin-bottom: 2.5rem;
+  }
+  .login-welcome {
+    font-family: 'Open Sans', sans-serif;
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-weight: 400;
+    color: #0B1E33;
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
+  .login-card {
+    background-color: var(--comet-dark) !important;
+    width: clamp(300px, 90vw, 480px);
+    padding: clamp(2rem, 5vw, 3rem);
+    border-radius: var(--card-border-radius) !important;
+  }
+  .login-card-title {
+    font-family: 'Open Sans', sans-serif;
+    font-size: clamp(1.6rem, 4vw, 2.1rem);
+    font-weight: 700;
+    color: #FFFFFF;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  .login-card .form-label {
+    color: #E0E0E0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+  .login-card .form-control {
+    background-color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.95rem;
+    color: #0B1E33;
+  }
+  .login-card .form-control:focus {
+    background-color: #FFFFFF;
+    border-color: var(--comet-blue);
+    box-shadow: 0 0 0 3px rgba(87, 197, 228, 0.25);
+  }
+  .login-card .btn-primary {
+    background-color: var(--comet-blue) !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 0.7rem;
+    font-size: 1rem;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+  .login-card .btn-primary:hover {
+    background-color: var(--comet-blue-dark) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(87, 197, 228, 0.35) !important;
+  }
+  .login-card .text-muted {
+    color: #A0B0C0 !important;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
+
+<img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet logo" class="login-logo">
+
+<h1 class="login-welcome">Welcome</h1>
+
 <div class="card login-card">
-        <div class="text-center mb-4">
-            <div class="comet-wordmark mb-2">Comet<span>.</span></div>
-            <h2 class="fw-bold login-title">Welcome Back</h2>
-            <p class="text-muted login-subtitle">Sign in to your professor account</p>
-        </div>
-        <form id="loginForm">
-            <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
-                <input type="text" class="form-control" id="username" name="username" required>
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Login</button>
-        </form>
-        <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;"></div>
-        <div class="text-center mt-3">
-            <p class="text-muted"><a href="{{ url_for('register') }}" class="text-white">Register here</a></p>
-        </div>
+  <h2 class="login-card-title">Log in to Comet</h2>
+  <form id="loginForm">
+    <div class="mb-3">
+      <label for="username" class="form-label">Email</label>
+      <input type="text" class="form-control" id="username" name="username" required>
+    </div>
+    <div class="mb-3">
+      <label for="password" class="form-label">Password</label>
+      <input type="password" class="form-control" id="password" name="password" required>
+    </div>
+    <button type="submit" class="btn btn-primary w-100">Login</button>
+  </form>
+  <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;"></div>
+  <div class="text-center mt-3">
+    <p class="text-muted"><a href="{{ url_for('register') }}" class="text-white">Register here</a></p>
+  </div>
 </div>
 
 <script>
@@ -72,5 +126,5 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     }
 });
 </script>
-{% endblock %}
 
+{% endblock %}

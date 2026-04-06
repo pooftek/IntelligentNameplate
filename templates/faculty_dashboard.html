@@ -3,755 +3,635 @@
 {% block title %}Comet — Live: {{ class_obj.name }}{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     body {
-        zoom: 1.25;
+        background: #FFFFFF !important;
         height: 100vh;
         overflow: hidden;
         margin: 0;
-        background: var(--bg-gradient);
+        font-family: 'Inter', sans-serif;
     }
 
-    .dashboard-container {
+    .fac-container {
         height: 100vh;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
     }
-    
-    .dashboard-header {
+
+    /* ── Header ── */
+    .fac-header {
         flex-shrink: 0;
-        padding: clamp(0.5rem, 1.5vh, 1.5rem) clamp(0.75rem, 2vw, 2rem);
-        background: transparent;
+        padding: 2rem 3rem 1.25rem;
     }
-    
-    .dashboard-header-title-container {
+
+    .fac-header-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .fac-header-title-group {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        width: 100%;
+        gap: 0.75rem;
+        min-width: 0;
+        flex: 1;
     }
-    
+
+    .fac-header-icon {
+        font-size: clamp(1.5rem, 3vw, 2.5rem);
+        color: #0B1E33;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+
     .responsive-title {
-        font-size: clamp(1.25rem, 3vw, 2.5rem);
-        font-weight: bold;
-        color: white;
-        margin: 0;
-    }
-    
-    .header-buttons {
-        display: flex;
-        gap: 1rem;
-    }
-    
-    .dashboard-content {
-        flex: 1;
-        overflow: hidden;
-        min-height: 0;
-        padding: clamp(0.5rem, 1.5vh, 1.5rem) clamp(0.75rem, 2vw, 2rem);
-        display: flex;
-        flex-direction: column;
-    }
-    
-    /* Light grey background container */
-    .card-base {
-        background-color: #e5e7eb;
-        border-radius: 20px;
-        padding: clamp(0.5rem, 1.5vh, 1.5rem);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        flex: 1;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-    
-    /* Tab navigation - positioned above white card */
-    .tab-nav {
-        display: flex;
-        gap: 0;
-        margin-bottom: 0;
-        position: relative;
-        z-index: 10;
-    }
-    
-    .tab-bubble {
-        background: transparent; /* Remove unselected tab background */
-        color: #6c757d;
-        padding: 0.75rem 2rem;
-        border: none;
-        border-bottom: 3px solid transparent;
+        font-family: 'Inter', sans-serif;
+        font-size: clamp(2.5rem, 6.25vw, 3.75rem);
         font-weight: 600;
-        font-size: 1.4rem;
+        color: #0B1E33;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .fac-header-buttons {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+    }
+
+    .fac-live-badge {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.6rem;
+        font-weight: 500;
+        color: #57C5E4;
+        letter-spacing: 0.08em;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-right: 2.5rem;
+    }
+
+    .fac-live-dot {
+        width: 13px;
+        height: 13px;
+        background-color: #57C5E4;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .btn-return {
+        border-radius: 9999px;
+        padding: 0.6rem 1.4rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        background-color: #0B1E33 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    .btn-return:hover {
+        background-color: #162e4d !important;
+        color: #FFFFFF !important;
+    }
+
+    .btn-end-class {
+        border-radius: 9999px;
+        padding: 0.6rem 1.4rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        background-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
         cursor: pointer;
-        transition: all 0.3s;
-        position: relative;
-    }
-    
-    .tab-bubble:hover {
-        background: transparent;
-        color: #495057;
-    }
-    
-    .tab-bubble.active {
-        background: #ffffff; /* White background matching unified card */
-        color: #2d2d2d;
-        border-bottom: none;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .tab-bubble.active:first-child {
-        border-radius: 12px 12px 0 0; /* Rounded top corners, sharp bottom corners */
-    }
-    
-    .tab-bubble.active:not(:first-child) {
-        border-radius: 12px 12px 0 0; /* Rounded top corners, sharp bottom corners */
-    }
-    
-    /* White card container for tab content - unified with tab (Google Chrome style) */
-    .tab-content-card {
-        background-color: #ffffff;
-        padding: clamp(0.75rem, 1.5vh, 2rem);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        flex: 1;
-        overflow: hidden;
-        min-height: 0;
-        margin-top: -1px;
-        position: relative;
-        border-radius: 0 12px 12px 0;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    /* When first tab is active, keep left side straight */
-    .tab-content-card.first-tab-active {
-        border-radius: 0 12px 12px 0; /* Straight left side, rounded right and bottom corners */
-    }
-    
-    /* When attendance tab is active, fillet top-left corner */
-    .tab-content-card.other-tab-active {
-        border-radius: 12px 12px 12px 0; /* Filleted top-left, rounded right and bottom corners */
-    }
-    
-    /* Ensure tab content is above the pseudo-element and fills card */
-    .tab-content {
-        position: relative;
-        z-index: 1;
-        flex: 1;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
     }
 
-    #dashboardContent, #attendanceContent, #settingsContent {
+    .btn-end-class:hover {
+        background-color: #3BA8C8 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* ── Tab Navigation ── */
+    .fac-tabs {
+        flex-shrink: 0;
+        padding: 0 3rem 0.75rem;
+        display: flex;
+        gap: 0.25rem;
+        align-items: center;
+    }
+
+    .tab-pill {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.25rem;
+        font-weight: 500;
+        color: #9ca3af;
+        background: none;
+        border: none;
+        padding: 0.45rem 1.25rem;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
+        line-height: 1.4;
+    }
+
+    .tab-pill.active {
+        background-color: #0B1E33;
+        color: #FFFFFF;
+    }
+
+    .tab-pill:not(.active):hover {
+        color: #6b7280;
+    }
+
+    /* ── Content Area ── */
+    .fac-content {
+        flex: 1;
+        min-height: 0;
+        padding: 0 3rem 0.75rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fac-tab-pane {
         flex: 1;
         min-height: 0;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
-    }
-    
-    .tab-content-card::-webkit-scrollbar {
-        width: 12px;
-    }
-    
-    .tab-content-card::-webkit-scrollbar-track {
-        background: #f8f9fa;
-        border-radius: 6px;
-    }
-    
-    .tab-content-card::-webkit-scrollbar-thumb {
-        background: #d1d5db;
-        border-radius: 6px;
-    }
-    
-    .tab-content-card::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af;
-    }
-    
-    /* White metric cards - now with light background since parent is white */
-    .metrics-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: clamp(0.5rem, 1vh, 1.5rem);
-        margin-bottom: clamp(0.5rem, 1vh, 1.5rem);
-    }
-    
-    /* Override grid positioning for metric cards inside metrics-container (attendance tab) */
-    .metrics-container .metric-card {
-        grid-row: auto;
-        grid-column: auto;
-        min-height: 0;
-        overflow: hidden;
     }
 
-    /* Ensure attendance tab content displays both cards properly */
-    #attendanceContent {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        min-height: 0;
-    }
-
-    #attendanceContent .metrics-container {
-        flex: 1;
-        min-height: 0;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        align-items: stretch;
-    }
-    
-    /* Dashboard layout: Grid with Live Metrics top-left, Poll Statistics bottom-left, Hands Raised full height right */
-    .dashboard-layout {
+    /* ── Dashboard Grid ── */
+    .fac-dashboard-grid {
         display: grid;
         grid-template-columns: 3fr 1fr;
-        grid-template-rows: auto 1fr;
-        gap: clamp(0.5rem, 1vh, 1.5rem);
+        grid-template-rows: 1fr 2fr;
+        gap: clamp(8px, 1.5vw, 20px);
         flex: 1;
+        min-height: 0;
+    }
+
+    /* ── Section Cards ── */
+    .fac-section-card {
+        background-color: #0B1E33;
+        border-radius: var(--card-border-radius);
+        padding: clamp(0.75rem, 1.5vh, 1.25rem) clamp(0.75rem, 1.5vw, 1.25rem);
+        display: flex;
+        flex-direction: column;
         min-height: 0;
         overflow: hidden;
     }
-    
-    .top-section {
-        display: contents;
-    }
-    
-    /* Hands Raised Card - skinny long rectangle, spans full height */
-    .hands-raised-card {
-        background-color: #f8f9fa;
-        border-radius: 15px;
-        padding: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border: 1px solid #d1d5db;
-        display: flex;
-        flex-direction: column;
-        grid-row: 1 / -1;
-        grid-column: 2;
-        min-height: 0;
-    }
-    
-    .hands-raised-card h6 {
-        color: #2d2d2d;
-        font-weight: 600;
-        margin-bottom: 0.75rem;
-        font-size: 1.25rem;
-    }
-    
-    .metric-card {
-        background-color: #f8f9fa;
-        border-radius: 15px;
-        padding: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border: 1px solid #d1d5db;
-        display: flex;
-        flex-direction: column;
-        grid-row: 1;
-        grid-column: 1;
-    }
-    
-    .metric-card-header {
+
+    .fac-section-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.6rem;
+        flex-shrink: 0;
     }
-    
-    .metric-card h6 {
-        color: #2d2d2d;
-        font-weight: 600;
+
+    .fac-section-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #9ca3af;
         margin: 0;
-        font-size: 1.25rem;
-        margin-bottom: 1rem; /* Add space between title and content */
     }
-    
-    .clear-metrics-btn {
-        font-size: 0.875rem;
+
+    /* Grid placement */
+    .fac-live-metrics-card { grid-column: 1; grid-row: 1; }
+    .fac-poll-card          { grid-column: 1; grid-row: 2; overflow: hidden; }
+    .fac-hands-raised-card  { grid-column: 2; grid-row: 1 / -1; }
+
+    /* ── Pill Buttons (cards) ── */
+    .btn-clear {
+        background-color: #040E1A !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 9999px;
+        padding: 0.22rem 0.85rem;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.8rem;
+        font-weight: 400;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        line-height: 1.5;
+    }
+
+    .btn-clear:hover { background-color: #091525 !important; }
+
+    .btn-start-poll {
+        background-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 9999px;
+        padding: 0.22rem 0.85rem;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.8rem;
         font-weight: 600;
-        padding: 0.25rem 0.75rem;
-        border-radius: 8px;
-        min-width: 80px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        line-height: 1.5;
     }
-    
-    .metric-value {
-        font-size: clamp(1.25rem, 3vh, 2.5rem);
-        font-weight: bold;
-        color: #2d2d2d;
-        margin-bottom: 0.25rem;
+
+    .btn-start-poll:hover { background-color: #3BA8C8 !important; }
+
+    .btn-stop-poll {
+        background-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 9999px;
+        padding: 0.22rem 0.85rem;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        line-height: 1.5;
     }
-    
-    .metric-label {
-        color: #6c757d;
-        font-size: 0.9rem;
-    }
-    
-    /* Live Metrics Horizontal Line - shrunk to allow space for Hands Raised */
+
+    .btn-stop-poll:hover { background-color: #3BA8C8 !important; }
+
+    /* ── Live Metrics ── */
     .live-metrics-grid {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr 1fr;
         gap: 0.75rem;
+        flex: 1;
+        min-height: 0;
     }
-    
+
     .live-metric-item {
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        padding: 1rem;
-        border-radius: 15px;
+        padding: 0.75rem;
+        border-radius: 10px;
     }
-    
+
     .live-metric-item.attendance,
     .live-metric-item.unique-participation {
-        background-color: #f8f9fa;
-        border: none;
+        background: transparent;
     }
-    
-    .live-metric-item.thumbs-up {
-        background-color: #28a745;
-        color: white;
-    }
-    
-    .live-metric-item.thumbs-down {
-        background-color: #dc3545;
-        color: white;
-    }
-    
+
+    .live-metric-item.thumbs-up   { background-color: #57C5E4; }
+    .live-metric-item.thumbs-down { background-color: #040E1A; }
+
     .live-metric-value {
-        font-size: clamp(1.25rem, 3vh, 2.5rem);
-        font-weight: bold;
-        margin-bottom: 0.25rem;
+        font-size: clamp(2rem, 5vh, 4rem);
+        font-weight: 700;
+        color: #FFFFFF;
+        margin-bottom: 0.2rem;
+        line-height: 1;
     }
 
     .live-metric-label {
-        font-size: clamp(0.7rem, 1.2vh, 1.125rem);
+        font-size: clamp(0.65rem, 1.2vh, 0.9rem);
         font-weight: 500;
+        color: #9ca3af;
     }
-    
-    .live-metric-item.attendance .live-metric-value,
-    .live-metric-item.unique-participation .live-metric-value {
-        color: #2d2d2d;
-    }
-    
-    .live-metric-item.attendance .live-metric-label,
-    .live-metric-item.unique-participation .live-metric-label {
-        color: #6c757d;
-    }
-    
-    .live-metric-item.thumbs-up .live-metric-value,
-    .live-metric-item.thumbs-down .live-metric-value,
+
     .live-metric-item.thumbs-up .live-metric-label,
     .live-metric-item.thumbs-down .live-metric-label {
-        color: white;
+        color: #FFFFFF;
     }
-    
-    .hands-raised-list {
-        flex: 1;
-        overflow-y: auto;
-        min-height: 100px;
-        max-height: 100%;
-    }
-    
-    .hands-raised-list::-webkit-scrollbar {
-        width: 8px;
-    }
-    
-    .hands-raised-list::-webkit-scrollbar-track {
-        background: #f8f9fa;
-        border-radius: 4px;
-    }
-    
-    .hands-raised-list::-webkit-scrollbar-thumb {
-        background: #d1d5db;
-        border-radius: 4px;
-    }
-    
-    .hands-raised-list::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af;
-    }
-    
-    .hands-raised-item {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-        background-color: white;
-        border-radius: 8px;
-        border: 1px solid #d1d5db;
-    }
-    
-    .hands-raised-item .hand-icon {
-        margin-right: 0.75rem;
-        color: #6c757d;
-        font-size: 1.2rem;
-    }
-    
-    .hands-raised-item .student-name {
-        flex: 1;
-        color: #2d2d2d;
-        font-weight: 500;
-    }
-    
-    .hands-raised-item .student-number {
-        color: #6c757d;
-        font-size: 0.9rem;
-    }
-    
-    .hands-raised-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.75rem;
-    }
-    
-    .hands-raised-card h6 {
-        margin: 0;
-    }
-    
-    .clear-hands-btn {
-        font-size: 0.875rem;
-        font-weight: 600;
-        padding: 0.25rem 0.75rem;
-        border-radius: 8px;
-        min-width: 80px;
-    }
-    
-    /* Poll card - smaller horizontally at bottom left */
-    .poll-card {
-        background-color: #f8f9fa;
-        border-radius: 15px;
-        padding: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border: 1px solid #d1d5db;
-        display: flex;
-        flex-direction: column;
-        grid-column: 1;
-        grid-row: 2;
-        min-height: 0;
-        max-height: 100%;
-        overflow: visible;
-        position: relative;
-        will-change: auto;
-        transform: translateZ(0);
-    }
-    
+
+    /* ── Poll ── */
     .poll-card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.6rem;
+        flex-shrink: 0;
     }
-    
+
     .poll-header-left {
         display: flex;
         align-items: center;
-        gap: 1rem;
+        gap: 0.75rem;
     }
-    
+
     .poll-header-buttons {
         display: flex;
         gap: 0.5rem;
-        align-items: center;
     }
-    
-    .poll-card h6 {
-        color: #2d2d2d;
-        font-weight: 600;
-        margin: 0;
-        font-size: 1.25rem;
-    }
-    
-    .vote-percentage-inline {
-        color: #2d2d2d;
-        font-size: 1rem;
-        font-weight: 600;
-        background-color: #d1d5db;
-        padding: 0.25rem 0.75rem;
-        border-radius: 6px;
-    }
-    
-    .poll-controls {
+
+    .poll-vote-display {
+        flex: 1;
         display: flex;
-        gap: 1rem;
+        flex-direction: column;
         align-items: center;
-        margin-bottom: 1rem;
+        justify-content: center;
     }
-    
-    .poll-header-button {
-        margin: 0;
-        min-width: 100px;
-        padding: 0.375rem 1rem;
-    }
-    
-    .poll-controls select {
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        border: 1px solid #dee2e6;
-    }
-    
-    .btn-start-poll {
-        background: var(--comet-blue);
-        border: none;
-        color: var(--comet-navy);
+
+    .poll-vote-value {
+        font-size: clamp(2rem, 5vh, 4rem);
         font-weight: 700;
-        font-size: 0.875rem;
-        font-weight: 600;
-        padding: 0.375rem 1rem;
-        border-radius: 8px;
+        color: #FFFFFF;
+        line-height: 1;
+        margin-bottom: 0.2rem;
     }
-    
-    .btn-start-poll:hover {
-        background: linear-gradient(135deg, #4B2F66 0%, #6600CC 100%);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+
+    .poll-vote-label {
+        font-size: clamp(0.65rem, 1.2vh, 0.9rem);
+        font-weight: 500;
+        color: #9ca3af;
     }
-    
-    .poll-header-button.btn-danger {
-        font-size: 0.875rem;
-        padding: 0.375rem 1rem;
-    }
-    
+
     .poll-results-container {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        margin-top: 1rem;
-        position: relative;
-        will-change: auto;
+        gap: 1rem;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
     }
-    
+
     .poll-table {
         width: 100%;
+        font-size: 0.875rem;
     }
-    
+
     .poll-table th {
-        background-color: #d1d5db;
-        padding: 0.75rem;
-        text-align: center;
+        background-color: rgba(255, 255, 255, 0.08);
+        padding: 0.5rem 0.75rem;
         font-weight: 600;
-        color: #2d2d2d;
-        border-bottom: 2px solid #c4c9d0;
-    }
-    
-    .poll-table th.text-left {
-        text-align: left;
-    }
-    
-    .poll-table td {
-        padding: 0.75rem;
-        border-bottom: 1px solid #f0f0f0;
+        color: #FFFFFF;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         text-align: center;
     }
-    
-    .poll-table td.text-left {
-        text-align: left;
+
+    .poll-table th.text-left { text-align: left; }
+
+    .poll-table td {
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        text-align: center;
+        color: #FFFFFF;
     }
-    
-    .poll-option-green { color: #28a745; }
-    .poll-option-red { color: #dc3545; }
-    .poll-option-c { color: #ffc107; }
-    .poll-option-d { color: #007bff; }
-    
+
+    .poll-table td.text-left { text-align: left; }
+
+    .poll-option-green { color: #28a745 !important; }
+    .poll-option-red   { color: #dc3545 !important; }
+    .poll-option-c     { color: #ffc107 !important; }
+    .poll-option-d     { color: #007bff !important; }
+
     .poll-chart-container {
-        height: calc(2.5rem + 5 * 3rem); /* Header (~2.5rem) + 5 rows (each ~3rem for taller graph) */
+        height: 100%;
         width: 100%;
         position: relative;
         pointer-events: none;
     }
-    
-    .poll-chart-container canvas {
-        pointer-events: none;
+
+    .poll-chart-container canvas { pointer-events: none; }
+
+    /* ── Hands Raised ── */
+    .hands-raised-list {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
     }
-    
-    .clear-data-btn {
-        background-color: #6c757d;
-        color: white;
-        border: none;
-        padding: 0.5rem 1.5rem;
+
+    .hands-raised-list::-webkit-scrollbar { width: 6px; }
+    .hands-raised-list::-webkit-scrollbar-track { background: transparent; }
+    .hands-raised-list::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+    }
+
+    .hands-raised-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0.6rem;
+        margin-bottom: 0.4rem;
+        background-color: rgba(255, 255, 255, 0.06);
         border-radius: 8px;
-        margin-top: 1rem;
-        cursor: pointer;
     }
-    
-    .clear-data-btn:hover {
-        background-color: #5a6268;
+
+    .hands-raised-item .hand-icon {
+        margin-right: 0.6rem;
+        color: #9ca3af;
+        font-size: 1rem;
     }
-    
-    .loading {
-        text-align: center;
-        padding: 2rem;
-        color: #6c757d;
+
+    .hands-raised-item .student-name {
+        flex: 1;
+        color: #FFFFFF;
+        font-size: 0.875rem;
+        font-weight: 500;
     }
-    
-    .empty-state {
-        text-align: center;
-        padding: 2rem;
-        color: #6c757d;
+
+    .hands-raised-item .student-number {
+        color: #9ca3af;
+        font-size: 0.8rem;
+    }
+
+    /* ── Empty States ── */
+    .fac-empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        color: #9ca3af;
         font-style: italic;
+        font-size: 0.9rem;
+        text-align: center;
     }
-    
-    /* Poll card empty state - move up 1 row and center vertically */
-    .poll-card .empty-state {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-top: -1rem;
-        min-height: 200px;
+
+    /* Quarter-down positioning for list empty states */
+    .hands-raised-list .fac-empty-state,
+    .fac-attendance-grid .fac-empty-state {
+        align-items: flex-start;
+        padding-top: 25%;
     }
-    
-    /* Hands raised empty state - move down 3 rows and center vertically */
-    .hands-raised-list .empty-state {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-top: 3rem;
-        min-height: 200px;
+
+    /* ── Attendance Tab ── */
+    .fac-attendance-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: clamp(8px, 1.5vw, 20px);
+        flex: 1;
+        min-height: 0;
     }
-    
+
+    /* ── Settings Tab ── */
+    .fac-settings-container {
+        max-width: 600px;
+        padding: 1rem 0;
+        overflow-y: auto;
+    }
+
+    .fac-settings-container .form-check-label {
+        color: #0B1E33;
+        font-size: 1rem;
+    }
+
+    .fac-settings-container h5,
+    .fac-settings-container h6 {
+        color: #0B1E33;
+        font-weight: 600;
+    }
+
+    /* ── Branding ── */
+    .fac-branding {
+        flex-shrink: 0;
+        text-align: center;
+        padding: 1.5rem 0 1.25rem;
+    }
+
+    .fac-branding img {
+        height: 34px;
+        width: auto;
+    }
+
+    /* suppress tooltip on title */
+    #facTitle.truncated-text[title]:hover::after,
+    #facTitle.truncated-text[title]:hover::before {
+        display: none !important;
+    }
+
+    /* Modal */
     .modal-footer-btn {
         height: 38px;
         min-width: 120px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-    }
-    
-    /* Settings Tab Styling */
-    .settings-container {
-        max-width: 600px;
-        margin: 0 auto;
-    }
-    
-    .settings-title {
-        color: #2d2d2d;
-        font-weight: 600;
-        font-size: 1.5rem;
-    }
-    
-    .settings-container h6 {
-        color: #2d2d2d;
-        font-weight: 600;
-        font-size: 1.125rem;
-    }
-    
-    .settings-container .form-check-label {
-        color: #2d2d2d;
-        font-size: 1rem;
-    }
-    
-    .settings-container .form-text {
-        color: #6c757d;
-        font-size: 0.875rem;
-    }
-    
-    .settings-container hr {
-        border-color: #d1d5db;
-        opacity: 1;
+        border-radius: 0.375rem;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-    <div class="dashboard-header">
-        <div class="dashboard-header-title-container">
-            <h1 class="responsive-title">Live Class Dashboard</h1>
-            <div class="header-buttons">
-                <a href="/classroom/{{ class_obj.id }}" class="btn btn-outline-light">Return</a>
-                <button class="btn btn-danger" onclick="stopClass()">End Class</button>
+<div class="fac-container">
+
+    <div class="fac-header">
+        <div class="fac-header-inner">
+            <div class="fac-header-title-group">
+                <i class="bi bi-globe2 fac-header-icon"></i>
+                <h1 class="responsive-title" id="facTitle">{{ class_obj.name }}</h1>
+            </div>
+            <div class="fac-header-buttons">
+                <div class="fac-live-badge">
+                    LIVE <span class="fac-live-dot"></span>
+                </div>
+                <a href="/classroom/{{ class_obj.id }}" class="btn-return">
+                    <i class="bi bi-arrow-left-circle-fill"></i> Return
+                </a>
+                <button class="btn-end-class" onclick="stopClass()">
+                    <i class="bi bi-stop-circle-fill"></i> End Class
+                </button>
             </div>
         </div>
     </div>
-    
-    <div class="dashboard-content">
-        <div class="card-base">
-            <!-- Tab Navigation -->
-            <div class="tab-nav">
-                <button class="tab-bubble active" onclick="showTab('dashboard')">Dashboard</button>
-                <button class="tab-bubble" onclick="showTab('attendance')">Attendance</button>
-                <button class="tab-bubble" onclick="showTab('settings')">Settings</button>
+
+    <div class="fac-tabs">
+        <button class="tab-pill active" onclick="showTab('dashboard', this)">Dashboard</button>
+        <button class="tab-pill" onclick="showTab('attendance', this)">Attendance</button>
+        <button class="tab-pill" onclick="showTab('settings', this)">Settings</button>
+    </div>
+
+    <div class="fac-content">
+
+        <!-- Dashboard Tab -->
+        <div id="dashboardTab" class="fac-tab-pane">
+            <div id="dashboardContent" class="fac-tab-pane">
+                <div class="fac-empty-state">Loading dashboard...</div>
             </div>
-            
-            <!-- White Card Container for Tab Content -->
-            <div class="tab-content-card">
-                <!-- Dashboard Tab Content -->
-                <div id="dashboardTab" class="tab-content">
-                    <div id="dashboardContent">
-                        <div class="loading">Loading dashboard...</div>
-                    </div>
-                </div>
-                
-                <!-- Attendance Tab Content -->
-                <div id="attendanceTab" class="tab-content" style="display: none;">
-                    <div id="attendanceContent">
-                        <div class="metrics-container">
-                            <!-- Present Students Card - Permanent -->
-                            <div class="metric-card">
-                                <h6>Present Students</h6>
-                                <div class="hands-raised-list" id="presentStudentsList">
-                                    <div class="loading">Loading...</div>
-                                </div>
-                            </div>
-                            
-                            <!-- Absent Students Card - Permanent -->
-                            <div class="metric-card">
-                                <h6>Absent Students</h6>
-                                <div class="hands-raised-list" id="absentStudentsList">
-                                    <div class="loading">Loading...</div>
-                                </div>
-                            </div>
+        </div>
+
+        <!-- Attendance Tab -->
+        <div id="attendanceTab" class="fac-tab-pane" style="display: none;">
+            <div id="attendanceContent" class="fac-tab-pane">
+                <div class="fac-attendance-grid">
+                    <div class="fac-section-card">
+                        <div class="fac-section-header">
+                            <span class="fac-section-title">Present Students</span>
+                        </div>
+                        <div class="hands-raised-list" id="presentStudentsList">
+                            <div class="fac-empty-state">Loading...</div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Settings Tab Content -->
-                <div id="settingsTab" class="tab-content" style="display: none;">
-                    <div id="settingsContent">
-                        <div class="settings-container">
-                            <h5 class="settings-title mb-4">Class Settings</h5>
-                            
-                            <form id="liveSettingsForm">
-                                <h6 class="mb-3">Display Preferences</h6>
-                                <div class="form-check form-switch mb-4">
-                                    <input class="form-check-input" type="checkbox" id="liveShowFirstNameOnly">
-                                    <label class="form-check-label" for="liveShowFirstNameOnly">
-                                        Show First Name Only
-                                    </label>
-                                </div>
-                                
-                                <div class="form-check form-switch mb-4">
-                                    <input class="form-check-input" type="checkbox" id="liveQuietMode">
-                                    <label class="form-check-label" for="liveQuietMode">
-                                        Quiet Mode
-                                    </label>
-                                </div>
-                                
-                                <hr class="my-4">
-                                
-                                <h6 class="mb-3">Attendance Settings</h6>
-                                <div class="form-check form-switch mb-4">
-                                    <input class="form-check-input" type="checkbox" id="liveExcludeFromGrading">
-                                    <label class="form-check-label" for="liveExcludeFromGrading">
-                                        Exclude This Session from Grading
-                                    </label>
-                                    <small class="form-text text-muted d-block mt-1">
-                                        When enabled, attendance for this class session will not count toward student grades.
-                                    </small>
-                                </div>
-                                
-                                <div class="d-flex justify-content-end mt-4">
-                                    <button type="button" class="btn btn-primary" onclick="saveLiveSettings()">Save Settings</button>
-                                </div>
-                            </form>
+                    <div class="fac-section-card">
+                        <div class="fac-section-header">
+                            <span class="fac-section-title">Absent Students</span>
+                        </div>
+                        <div class="hands-raised-list" id="absentStudentsList">
+                            <div class="fac-empty-state">Loading...</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Settings Tab -->
+        <div id="settingsTab" class="fac-tab-pane" style="display: none;">
+            <div id="settingsContent" class="fac-tab-pane">
+                <div class="fac-settings-container">
+                    <h5 class="mb-4">Class Settings</h5>
+
+                    <form id="liveSettingsForm">
+                        <h6 class="mb-3">Display Preferences</h6>
+                        <div class="form-check form-switch mb-4">
+                            <input class="form-check-input" type="checkbox" id="liveShowFirstNameOnly">
+                            <label class="form-check-label" for="liveShowFirstNameOnly">
+                                Show First Name Only
+                            </label>
+                        </div>
+
+                        <div class="form-check form-switch mb-4">
+                            <input class="form-check-input" type="checkbox" id="liveQuietMode">
+                            <label class="form-check-label" for="liveQuietMode">
+                                Quiet Mode
+                            </label>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <h6 class="mb-3">Attendance Settings</h6>
+                        <div class="form-check form-switch mb-4">
+                            <input class="form-check-input" type="checkbox" id="liveExcludeFromGrading">
+                            <label class="form-check-label" for="liveExcludeFromGrading">
+                                Exclude This Session from Grading
+                            </label>
+                            <small class="form-text text-muted d-block mt-1">
+                                When enabled, attendance for this class session will not count toward student grades.
+                            </small>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="button" class="btn btn-primary" onclick="saveLiveSettings()">Save Settings</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
     </div>
+
+    <div class="fac-branding">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
+    </div>
+
 </div>
 
 <!-- Create Poll Modal -->
@@ -821,12 +701,6 @@ let pollChart = null;
 
 socket.on('connect', () => {
     socket.emit('join_class', {class_id: classId});
-    // Initialize tab shape class
-    const tabContentCard = document.querySelector('.tab-content-card');
-    const firstTab = document.querySelector('.tab-nav .tab-bubble:first-child');
-    if (firstTab && firstTab.classList.contains('active')) {
-        tabContentCard.classList.add('first-tab-active');
-    }
     loadDashboard();
     setInterval(loadDashboard, 2000);
 });
@@ -836,57 +710,28 @@ socket.on('student_joined', () => {
     loadAttendance();
 });
 
-socket.on('student_interaction', () => {
-    loadDashboard();
-});
+socket.on('student_interaction', () => { loadDashboard(); });
+socket.on('poll_started', () => { loadDashboard(); });
+socket.on('poll_stopped', () => { loadDashboard(); });
+socket.on('poll_response', () => { loadDashboard(); });
 
-socket.on('poll_started', (data) => {
-    loadDashboard();
-});
-
-socket.on('poll_stopped', () => {
-    loadDashboard();
-});
-
-socket.on('poll_response', (data) => {
-    loadDashboard();
-});
-
-socket.on('settings_updated', (data) => {
-    // Update settings form if settings tab is visible
+socket.on('settings_updated', () => {
     if (document.getElementById('settingsTab').style.display !== 'none') {
         loadLiveSettings();
     }
 });
 
 // Tab switching
-function showTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll('.tab-bubble').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
-    
-    // Update white card classes for unified shape
-    const tabContentCard = document.querySelector('.tab-content-card');
-    tabContentCard.classList.remove('first-tab-active', 'other-tab-active');
-    
-    // Check if first tab is active
-    const firstTab = document.querySelector('.tab-nav .tab-bubble:first-child');
-    if (firstTab.classList.contains('active')) {
-        tabContentCard.classList.add('first-tab-active');
-    } else {
-        tabContentCard.classList.add('other-tab-active');
-    }
-    
-    // Show/hide tab content
-    document.getElementById('dashboardTab').style.display = tabName === 'dashboard' ? 'block' : 'none';
-    document.getElementById('attendanceTab').style.display = tabName === 'attendance' ? 'block' : 'none';
-    document.getElementById('settingsTab').style.display = tabName === 'settings' ? 'block' : 'none';
-    
-    if (tabName === 'attendance') {
-        loadAttendance();
-    } else if (tabName === 'settings') {
-        loadLiveSettings();
-    }
+function showTab(tabName, btn) {
+    document.querySelectorAll('.tab-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.getElementById('dashboardTab').style.display  = tabName === 'dashboard'  ? 'flex' : 'none';
+    document.getElementById('attendanceTab').style.display = tabName === 'attendance' ? 'flex' : 'none';
+    document.getElementById('settingsTab').style.display   = tabName === 'settings'   ? 'flex' : 'none';
+
+    if (tabName === 'attendance') loadAttendance();
+    else if (tabName === 'settings') loadLiveSettings();
 }
 
 // Load Dashboard
@@ -894,155 +739,135 @@ async function loadDashboard() {
     try {
         const response = await fetch(`/api/live_dashboard/${classId}`);
         const data = await response.json();
-        
+
         if (!data.success) {
-            document.getElementById('dashboardContent').innerHTML = '<div class="text-danger">Error loading dashboard</div>';
+            document.getElementById('dashboardContent').innerHTML = '<div class="fac-empty-state text-danger">Error loading dashboard</div>';
             return;
         }
-        
-        let html = '<div class="dashboard-layout">';
-        
-        // Live Metrics Card - Horizontal Line (top-left, grid position 1,1)
-        html += '<div class="metric-card">';
-        html += '<div class="metric-card-header">';
-        html += '<h6>Live Metrics</h6>';
-        html += `<button class="btn btn-secondary clear-metrics-btn" onclick="clearLiveMetrics(${classId})" title="Clear all metrics">Clear</button>`;
+
+        let html = '<div class="fac-dashboard-grid">';
+
+        // ── Live Metrics Card (top-left) ──
+        html += '<div class="fac-section-card fac-live-metrics-card">';
+        html += '<div class="fac-section-header">';
+        html += '<span class="fac-section-title">Live Metrics</span>';
+        html += `<button class="btn-clear" onclick="clearLiveMetrics(${classId})">Clear</button>`;
         html += '</div>';
         html += '<div class="live-metrics-grid">';
-        
-        // Attendance %
-        const attendancePercent = data.total_students > 0 
-            ? Math.round((data.present_students || 0) / data.total_students * 100) 
+
+        const attendancePercent = data.total_students > 0
+            ? Math.round((data.present_students || 0) / data.total_students * 100)
             : 0;
+
         html += '<div class="live-metric-item attendance">';
         html += `<div class="live-metric-value">${attendancePercent}%</div>`;
-        html += '<div class="live-metric-label">Attendance</div>';
+        html += '<div class="live-metric-label">attendance</div>';
         html += '</div>';
-        
-        // Unique Participation
+
         html += '<div class="live-metric-item unique-participation">';
         html += `<div class="live-metric-value">${data.unique_participants || 0}</div>`;
-        html += '<div class="live-metric-label">Unique Participation</div>';
+        html += '<div class="live-metric-label">unique participation</div>';
         html += '</div>';
-        
-        // Thumbs Up (Green)
+
         html += '<div class="live-metric-item thumbs-up">';
         html += `<div class="live-metric-value">${data.thumbs_up_count || 0}</div>`;
-        html += '<div class="live-metric-label">Thumbs Up</div>';
+        html += '<div class="live-metric-label">thumbs up</div>';
         html += '</div>';
-        
-        // Thumbs Down (Red)
+
         html += '<div class="live-metric-item thumbs-down">';
         html += `<div class="live-metric-value">${data.thumbs_down_count || 0}</div>`;
-        html += '<div class="live-metric-label">Thumbs Down</div>';
+        html += '<div class="live-metric-label">thumbs down</div>';
         html += '</div>';
-        
-        html += '</div>'; // End live-metrics-grid
-        html += '</div>'; // End metric-card
-        
-        // Poll Card (bottom-left, grid position 2,1)
-        html += '<div class="poll-card">';
-        html += '<div class="poll-card-header">';
+
+        html += '</div>'; // live-metrics-grid
+        html += '</div>'; // live-metrics card
+
+        // ── Poll Data Card (bottom-left, 2× height) ──
+        html += '<div class="fac-section-card fac-poll-card">';
+        html += '<div class="fac-section-header">';
         html += '<div class="poll-header-left">';
-        html += '<h6>Poll Statistics</h6>';
-        if (data.active_poll) {
-            html += '<div class="vote-percentage-inline">0%</div>';
-        }
+        html += '<span class="fac-section-title">Poll Data</span>';
         html += '</div>';
-        
+
         if (data.active_poll) {
-            html += `<div class="poll-header-buttons">`;
-            html += `<button class="btn btn-secondary btn-sm poll-header-button" onclick="clearPollData(${data.active_poll.poll_id})">Clear Data</button>`;
-            html += `<button class="btn btn-danger btn-sm poll-header-button" onclick="stopPoll(${data.active_poll.poll_id})">Stop Poll</button>`;
-            html += `</div>`;
+            html += '<div class="poll-header-buttons">';
+            html += `<button class="btn-clear" onclick="clearPollData(${data.active_poll.poll_id})">Clear Data</button>`;
+            html += `<button class="btn-stop-poll" onclick="stopPoll(${data.active_poll.poll_id})">Stop Poll</button>`;
+            html += '</div>';
         } else {
-            html += '<button class="btn btn-start-poll poll-header-button" onclick="showCreatePollModal()">Start Poll</button>';
+            html += '<button class="btn-start-poll" onclick="showCreatePollModal()">Start Poll</button>';
         }
-        
-        html += '</div>'; // End poll-card-header
-        
+        html += '</div>'; // section-header
+
         if (data.active_poll) {
-            html += '<div id="pollResultsContainer"></div>';
+            html += '<div id="pollResultsContainer" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>';
         } else {
-            html += '<div class="empty-state">No active poll. Click "Start Poll" to create one.</div>';
+            html += '<div class="fac-empty-state">No active poll. Click "Start Poll" to start one.</div>';
         }
-        
-        html += '</div>'; // End poll-card
-        
-        // Hands Raised Card (right, spans both rows, grid position 1-2,2)
-        html += '<div class="hands-raised-card">';
-        html += '<div class="hands-raised-header">';
-        html += '<h6>Hands Raised</h6>';
-        html += `<button class="btn btn-secondary clear-hands-btn" onclick="clearHandsRaised(${classId})" title="Clear all hands raised">Clear</button>`;
+        html += '</div>'; // poll card
+
+        // ── Raised Hands Card (right, full height) ──
+        html += '<div class="fac-section-card fac-hands-raised-card">';
+        html += '<div class="fac-section-header">';
+        html += '<span class="fac-section-title">Raised Hands</span>';
+        html += `<button class="btn-clear" onclick="clearHandsRaised(${classId})">Clear</button>`;
         html += '</div>';
         html += '<div class="hands-raised-list">';
         if (data.hands_raised && data.hands_raised.length > 0) {
             data.hands_raised.forEach((item, index) => {
-                const studentName = data.show_first_name_only && item.preferred_name 
-                    ? item.preferred_name 
+                const studentName = data.show_first_name_only && item.preferred_name
+                    ? item.preferred_name
                     : (data.show_first_name_only ? item.first_name : `${item.preferred_name || item.first_name} ${item.last_name}`);
                 html += `<div class="hands-raised-item">
                     <span class="hand-icon"><i class="bi bi-hand-index"></i></span>
                     <span class="student-name">${index + 1}. ${studentName}</span>
-                    <span class="student-number">${item.student_number}</span>
                 </div>`;
             });
         } else {
-            html += '<div class="empty-state">No hands raised</div>';
+            html += '<div class="fac-empty-state">No hands raised</div>';
         }
-        html += '</div>';
-        html += '</div>'; // End hands-raised-card
-        
-        html += '</div>'; // End dashboard-layout
-        
-        const dashboardContent = document.getElementById('dashboardContent');
-        const existingPollContainer = dashboardContent.querySelector('#pollResultsContainer');
-        
-        // Update dashboard
-        dashboardContent.innerHTML = html;
-        
-        // Load poll results if active (using data from live_dashboard response to avoid dual refresh)
+        html += '</div>'; // hands-raised-list
+        html += '</div>'; // hands-raised card
+
+        html += '</div>'; // fac-dashboard-grid
+
+        document.getElementById('dashboardContent').innerHTML = html;
+
         if (data.active_poll && data.poll_results) {
-            // Use the poll results from the live_dashboard response
             updatePollResults(data.poll_results, data.present_students);
         } else {
-            // Clear poll chart if poll is no longer active
-            if (pollChart) {
-                pollChart.destroy();
-                pollChart = null;
-            }
+            if (pollChart) { pollChart.destroy(); pollChart = null; }
         }
-        
+
     } catch (error) {
         console.error('Error loading dashboard:', error);
-        document.getElementById('dashboardContent').innerHTML = '<div class="text-danger">Error loading dashboard</div>';
+        document.getElementById('dashboardContent').innerHTML = '<div class="fac-empty-state text-danger">Error loading dashboard</div>';
     }
 }
 
-// Update Poll Results (called directly with data from live_dashboard)
+// Update Poll Results
 function updatePollResults(data, presentStudents) {
     try {
         if (!data || !data.success) return;
-        
+
         const container = document.getElementById('pollResultsContainer');
         if (!container) return;
-        
-        // Check if structure already exists
+
         let resultsContainer = container.querySelector('.poll-results-container');
         let tableBody = container.querySelector('.poll-table tbody');
         const ctx = document.getElementById('pollChart');
-        
-        // First time: create structure
+
         if (!resultsContainer || !tableBody) {
             let html = '<div class="poll-results-container">';
-            
-            // Results Table (Left)
-            html += '<div>';
+
+            const votePercent = presentStudents > 0 ? Math.min(100, Math.round(data.total_responses / presentStudents * 100)) : 0;
+
+            html += '<div style="display:flex;flex-direction:column;overflow:hidden;">';
+            html += '<div style="overflow-y:auto;flex:1;">';
             html += '<table class="poll-table">';
             html += '<thead><tr><th class="text-left">Answer</th><th>Responses</th><th>%</th></tr></thead>';
             html += '<tbody>';
-            
-            // First answer green, second red, then default colors
+
             const optionColors = ['poll-option-green', 'poll-option-red', 'poll-option-c', 'poll-option-d'];
             data.options.forEach((option, index) => {
                 const count = data.option_counts[index] || 0;
@@ -1054,147 +879,112 @@ function updatePollResults(data, presentStudents) {
                     <td class="text-center poll-response-percent">${percentage.toFixed(0)}%</td>
                 </tr>`;
             });
-            
+
             html += '</tbody></table>';
             html += '</div>';
-            
-            // Chart (Right)
-            html += '<div>';
-            html += '<div class="poll-chart-container"><canvas id="pollChart"></canvas></div>';
+            html += `<div class="poll-vote-display"><div class="poll-vote-value">${votePercent}%</div><div class="poll-vote-label">vote percentage</div></div>`;
             html += '</div>';
-            
+
+            html += '<div><div class="poll-chart-container"><canvas id="pollChart"></canvas></div></div>';
             html += '</div>';
-            
+
             container.innerHTML = html;
-            
-            // Get references after creating structure
+
             resultsContainer = container.querySelector('.poll-results-container');
             tableBody = container.querySelector('.poll-table tbody');
-            
-            // Create chart
+
             const newCtx = document.getElementById('pollChart');
             if (newCtx) {
                 const chartColors = ['#28a745', '#dc3545', '#ffc107', '#007bff', '#6c757d'];
-                const chartData = {
-                    labels: data.options,
-                    datasets: [{
-                        label: 'Responses',
-                        data: data.options.map((_, i) => data.option_counts[i] || 0),
-                        backgroundColor: data.options.map((_, i) => chartColors[i] || '#6c757d'),
-                        borderColor: data.options.map((_, i) => chartColors[i] || '#6c757d'),
-                        borderWidth: 1
-                    }]
-                };
-                
                 pollChart = new Chart(newCtx, {
                     type: 'bar',
-                    data: chartData,
+                    data: {
+                        labels: data.options,
+                        datasets: [{
+                            label: 'Responses',
+                            data: data.options.map((_, i) => data.option_counts[i] || 0),
+                            backgroundColor: data.options.map((_, i) => chartColors[i] || '#6c757d'),
+                            borderColor: data.options.map((_, i) => chartColors[i] || '#6c757d'),
+                            borderWidth: 0,
+                            borderRadius: 6,
+                            borderSkipped: false
+                        }]
+                    },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         animation: false,
-                        interaction: {
-                            intersect: false,
-                            mode: 'index'
-                        },
-                        onHover: (event, activeElements) => {
-                            // Disable hover effects completely
-                            event.native.target.style.cursor = 'default';
-                        },
-                        transitions: {
-                            active: {
-                                animation: {
-                                    duration: 0
-                                }
-                            }
-                        },
+                        interaction: { intersect: false, mode: 'index' },
+                        onHover: (event) => { event.native.target.style.cursor = 'default'; },
+                        transitions: { active: { animation: { duration: 0 } } },
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                ticks: {
-                                    stepSize: 1
-                                }
+                                ticks: { stepSize: 1, color: '#9ca3af' },
+                                grid: { color: 'rgba(255,255,255,0.08)' }
+                            },
+                            x: {
+                                ticks: { color: '#9ca3af' },
+                                grid: { color: 'rgba(255,255,255,0.08)' }
                             }
                         },
                         plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                enabled: false
-                            }
+                            legend: { display: false },
+                            tooltip: { enabled: false }
                         }
                     }
                 });
             }
         } else {
-            // Update existing structure - only change text content, no DOM recreation
             const optionColors = ['poll-option-green', 'poll-option-red', 'poll-option-c', 'poll-option-d'];
             data.options.forEach((option, index) => {
                 const count = data.option_counts[index] || 0;
                 const percentage = data.total_responses > 0 ? (count / data.total_responses * 100) : 0;
-                
+
                 const row = tableBody.querySelector(`tr[data-option-index="${index}"]`);
                 if (row) {
-                    // Update answer text if it changed
                     const answerCell = row.querySelector('td:first-child strong');
-                    if (answerCell && answerCell.textContent !== option) {
-                        answerCell.textContent = option;
-                    }
-                    
-                    // Update count
+                    if (answerCell && answerCell.textContent !== option) answerCell.textContent = option;
+
                     const countCell = row.querySelector('.poll-response-count');
-                    if (countCell) {
-                        countCell.textContent = count;
-                    }
-                    
-                    // Update percentage
+                    if (countCell) countCell.textContent = count;
+
                     const percentCell = row.querySelector('.poll-response-percent');
-                    if (percentCell) {
-                        percentCell.textContent = `${percentage.toFixed(0)}%`;
-                    }
+                    if (percentCell) percentCell.textContent = `${percentage.toFixed(0)}%`;
                 }
             });
-            
-            // Update chart data without animation
+
             if (pollChart && ctx) {
                 const chartColors = ['#28a745', '#dc3545', '#ffc107', '#007bff', '#6c757d'];
                 pollChart.data.labels = data.options;
                 pollChart.data.datasets[0].data = data.options.map((_, i) => data.option_counts[i] || 0);
                 pollChart.data.datasets[0].backgroundColor = data.options.map((_, i) => chartColors[i] || '#6c757d');
                 pollChart.data.datasets[0].borderColor = data.options.map((_, i) => chartColors[i] || '#6c757d');
-                // Use 'none' mode and disable all interactions
                 pollChart.update('none');
-                // Ensure interactions stay disabled
                 if (pollChart.options) {
                     pollChart.options.interaction = { intersect: false, mode: 'index' };
-                    if (pollChart.options.plugins) {
-                        pollChart.options.plugins.tooltip = { enabled: false };
-                    }
+                    if (pollChart.options.plugins) pollChart.options.plugins.tooltip = { enabled: false };
                 }
             }
         }
-        
-        // Update vote percentage in header (always update this)
-        const votePercentage = presentStudents > 0 ? (data.total_responses / presentStudents * 100) : 0;
-        const votePercentageElement = document.querySelector('.vote-percentage-inline');
-        if (votePercentageElement) {
-            votePercentageElement.textContent = `${Math.min(100, votePercentage.toFixed(0))}%`;
+
+        const votePercentage = presentStudents > 0 ? Math.min(100, Math.round(data.total_responses / presentStudents * 100)) : 0;
+        const voteValueElement = document.querySelector('.poll-vote-value');
+        if (voteValueElement) {
+            voteValueElement.textContent = `${votePercentage}%`;
         }
-        
+
     } catch (error) {
         console.error('Error updating poll results:', error);
     }
 }
 
-// Load Poll Results (kept for backward compatibility, but should use updatePollResults instead)
+// Load Poll Results (backward compat)
 async function loadPollResults(pollId, presentStudents, options) {
     try {
         const response = await fetch(`/api/poll_results/${pollId}`);
         const data = await response.json();
-        
         if (!data.success) return;
-        
         updatePollResults(data, presentStudents);
     } catch (error) {
         console.error('Error loading poll results:', error);
@@ -1206,14 +996,13 @@ async function loadAttendance() {
     try {
         const response = await fetch(`/api/live_attendance/${classId}`);
         const data = await response.json();
-        
+
         if (!data.success) {
-            document.getElementById('presentStudentsList').innerHTML = '<div class="text-danger">Error loading attendance</div>';
-            document.getElementById('absentStudentsList').innerHTML = '<div class="text-danger">Error loading attendance</div>';
+            document.getElementById('presentStudentsList').innerHTML = '<div class="fac-empty-state text-danger">Error loading attendance</div>';
+            document.getElementById('absentStudentsList').innerHTML  = '<div class="fac-empty-state text-danger">Error loading attendance</div>';
             return;
         }
-        
-        // Update Present Students List
+
         const presentStudentsList = document.getElementById('presentStudentsList');
         if (presentStudentsList) {
             const presentStudents = data.present_students || [];
@@ -1222,16 +1011,14 @@ async function loadAttendance() {
                 presentStudents.forEach(student => {
                     html += `<div class="hands-raised-item">
                         <span class="student-name">${student.preferred_name || student.first_name} ${student.last_name}</span>
-                        <span class="student-number">${student.student_number}</span>
                     </div>`;
                 });
                 presentStudentsList.innerHTML = html;
             } else {
-                presentStudentsList.innerHTML = '<div class="empty-state">No students present</div>';
+                presentStudentsList.innerHTML = '<div class="fac-empty-state">No students present</div>';
             }
         }
-        
-        // Update Absent Students List
+
         const absentStudentsList = document.getElementById('absentStudentsList');
         if (absentStudentsList) {
             const absentStudents = data.absent_students || [];
@@ -1240,21 +1027,20 @@ async function loadAttendance() {
                 absentStudents.forEach(student => {
                     html += `<div class="hands-raised-item">
                         <span class="student-name">${student.preferred_name || student.first_name} ${student.last_name}</span>
-                        <span class="student-number">${student.student_number}</span>
                     </div>`;
                 });
                 absentStudentsList.innerHTML = html;
             } else {
-                absentStudentsList.innerHTML = '<div class="empty-state">All students are present</div>';
+                absentStudentsList.innerHTML = '<div class="fac-empty-state">All students are present</div>';
             }
         }
-        
+
     } catch (error) {
         console.error('Error loading attendance:', error);
         const presentList = document.getElementById('presentStudentsList');
-        const absentList = document.getElementById('absentStudentsList');
-        if (presentList) presentList.innerHTML = '<div class="text-danger">Error loading attendance</div>';
-        if (absentList) absentList.innerHTML = '<div class="text-danger">Error loading attendance</div>';
+        const absentList  = document.getElementById('absentStudentsList');
+        if (presentList) presentList.innerHTML = '<div class="fac-empty-state text-danger">Error loading attendance</div>';
+        if (absentList)  absentList.innerHTML  = '<div class="fac-empty-state text-danger">Error loading attendance</div>';
     }
 }
 
@@ -1263,17 +1049,13 @@ async function loadLiveSettings() {
     try {
         const response = await fetch(`/api/live_preferences/${classId}`);
         const data = await response.json();
-        
-        if (!data.success) {
-            console.error('Error loading settings:', data.error);
-            return;
-        }
-        
-        // Update form fields
+
+        if (!data.success) { console.error('Error loading settings:', data.error); return; }
+
         document.getElementById('liveShowFirstNameOnly').checked = data.show_first_name_only || false;
-        document.getElementById('liveQuietMode').checked = data.quiet_mode || false;
+        document.getElementById('liveQuietMode').checked         = data.quiet_mode || false;
         document.getElementById('liveExcludeFromGrading').checked = data.exclude_from_grading || false;
-        
+
     } catch (error) {
         console.error('Error loading live settings:', error);
     }
@@ -1284,20 +1066,19 @@ async function saveLiveSettings() {
     try {
         const data = {
             show_first_name_only: document.getElementById('liveShowFirstNameOnly').checked,
-            quiet_mode: document.getElementById('liveQuietMode').checked,
+            quiet_mode:           document.getElementById('liveQuietMode').checked,
             exclude_from_grading: document.getElementById('liveExcludeFromGrading').checked
         };
-        
+
         const response = await fetch(`/api/update_settings/${classId}`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
-        
+
         const result = await response.json();
         if (result.success) {
             showToast('Settings saved successfully.');
-            // Reload dashboard to reflect changes
             loadDashboard();
         } else {
             showToast(result.error || 'Failed to save settings', 'danger');
@@ -1313,10 +1094,10 @@ function updatePollOptions() {
     const numOptions = parseInt(document.getElementById('numOptions').value);
     const container = document.getElementById('pollOptionsContainer');
     const correctAnswerSelect = document.getElementById('correctAnswer');
-    
+
     container.innerHTML = '<label class="form-label">Options</label>';
     correctAnswerSelect.innerHTML = '<option value="">No correct answer</option>';
-    
+
     const optionLabels = ['A', 'B', 'C', 'D', 'E'];
     for (let i = 1; i <= numOptions; i++) {
         const input = document.createElement('input');
@@ -1325,12 +1106,9 @@ function updatePollOptions() {
         input.id = `option${i}`;
         input.placeholder = `Option ${optionLabels[i-1]}`;
         if (i <= 2) input.required = true;
-        
-        // Add event listener to update dropdown when option text changes
         input.addEventListener('input', updateCorrectAnswerDropdown);
-        
         container.appendChild(input);
-        
+
         const option = document.createElement('option');
         option.value = i - 1;
         option.textContent = `Option ${optionLabels[i-1]}`;
@@ -1339,13 +1117,12 @@ function updatePollOptions() {
     }
 }
 
-// Update correct answer dropdown to show actual option text
+// Update correct answer dropdown
 function updateCorrectAnswerDropdown() {
     const correctAnswerSelect = document.getElementById('correctAnswer');
     const numOptions = parseInt(document.getElementById('numOptions').value);
     const optionLabels = ['A', 'B', 'C', 'D', 'E'];
-    
-    // Keep the "No correct answer" option
+
     const noAnswerOption = correctAnswerSelect.querySelector('option[value=""]');
     correctAnswerSelect.innerHTML = '';
     if (noAnswerOption) {
@@ -1356,13 +1133,12 @@ function updateCorrectAnswerDropdown() {
         noAnswer.textContent = 'No correct answer';
         correctAnswerSelect.appendChild(noAnswer);
     }
-    
-    // Update each option with actual text or fallback to "Option X"
+
     for (let i = 1; i <= numOptions; i++) {
         const input = document.getElementById(`option${i}`);
         const optionText = input ? input.value.trim() : '';
         const displayText = optionText || `Option ${optionLabels[i-1]}`;
-        
+
         const option = document.createElement('option');
         option.value = i - 1;
         option.textContent = displayText;
@@ -1376,29 +1152,27 @@ async function createPoll() {
     const question = document.getElementById('pollQuestion').value;
     const numOptions = parseInt(document.getElementById('numOptions').value);
     const options = [];
-    
+
     for (let i = 1; i <= numOptions; i++) {
         const value = document.getElementById(`option${i}`).value.trim();
         if (value) options.push(value);
     }
-    
+
     if (options.length < 2) {
         showToast('Please provide at least 2 options.', 'warning');
         return;
     }
-    
-    // Check for duplicate options (case-insensitive)
+
     const optionsLower = options.map(opt => opt.toLowerCase().trim());
-    const uniqueOptions = new Set(optionsLower);
-    if (uniqueOptions.size !== options.length) {
+    if (new Set(optionsLower).size !== options.length) {
         showToast('Duplicate options are not allowed. Please ensure each option is unique.', 'warning');
         return;
     }
-    
+
     const correctAnswer = document.getElementById('correctAnswer').value;
     const isGraded = document.getElementById('isGraded').checked;
     const isAnonymous = document.getElementById('isAnonymous').checked;
-    
+
     const response = await fetch(`/api/create_poll/${classId}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -1410,7 +1184,7 @@ async function createPoll() {
             is_anonymous: isAnonymous
         })
     });
-    
+
     const data = await response.json();
     if (data.success) {
         bootstrap.Modal.getInstance(document.getElementById('createPollModal')).hide();
@@ -1424,24 +1198,16 @@ async function createPoll() {
 async function stopPoll(pollId) {
     const response = await fetch(`/api/stop_poll/${pollId}`, {method: 'POST'});
     const data = await response.json();
-    if (data.success) {
-        loadDashboard();
-    }
+    if (data.success) loadDashboard();
 }
 
 // Clear Live Metrics
 async function clearLiveMetrics(classId) {
-    if (!await showConfirm('Clear all live metrics (thumbs up, thumbs down, and participation counts)?')) {
-        return;
-    }
-    
+    if (!await showConfirm('Clear all live metrics (thumbs up, thumbs down, and participation counts)?')) return;
+
     try {
-        // Reset thumbs up
         await fetch(`/api/reset_thumbs_up/${classId}`, {method: 'POST'});
-        // Reset thumbs down
         await fetch(`/api/reset_thumbs_down/${classId}`, {method: 'POST'});
-        // Note: Participation count is calculated from session data, so it will reset naturally
-        
         loadDashboard();
     } catch (error) {
         console.error('Error clearing live metrics:', error);
@@ -1451,14 +1217,11 @@ async function clearLiveMetrics(classId) {
 
 // Clear Hands Raised
 async function clearHandsRaised(classId) {
-    if (!confirm('Are you sure you want to clear all raised hands?')) {
-        return;
-    }
-    
+    if (!confirm('Are you sure you want to clear all raised hands?')) return;
+
     try {
         const response = await fetch(`/api/clear_hands_raised/${classId}`, {method: 'POST'});
         const data = await response.json();
-        
         if (data.success) {
             loadDashboard();
         } else {
@@ -1475,7 +1238,7 @@ async function clearPollData(pollId) {
     const confirmed = await showConfirm('Are you sure you want to clear all poll responses? This cannot be undone.');
     if (!confirmed) return;
     try {
-        const response = await fetch(`/api/clear_poll_responses/${pollId}`, { method: 'POST' });
+        const response = await fetch(`/api/clear_poll_responses/${pollId}`, {method: 'POST'});
         const data = await response.json();
         if (data.success) {
             showToast('Poll responses cleared.');
@@ -1494,7 +1257,6 @@ function showCreatePollModal() {
     const modal = new bootstrap.Modal(document.getElementById('createPollModal'));
     modal.show();
     updatePollOptions();
-    // Initialize dropdown with current option values after a short delay to ensure DOM is ready
     setTimeout(updateCorrectAnswerDropdown, 100);
 }
 
@@ -1509,4 +1271,3 @@ async function stopClass() {
 }
 </script>
 {% endblock %}
-

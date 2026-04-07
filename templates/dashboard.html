@@ -282,6 +282,31 @@
         color: #374151 !important;
         border-color: #e5e7eb !important;
     }
+    #addClassModal .form-label,
+    #preferencesModal .form-label,
+    #addClassModal .form-check-label,
+    #preferencesModal .form-check-label {
+        font-family: 'Inter', sans-serif;
+        font-weight: 400;
+        color: #0B1E33;
+    }
+    #addClassModal .form-control,
+    #preferencesModal .form-control {
+        font-family: 'Inter', sans-serif;
+        color: #0B1E33;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+    }
+    #addClassModal .form-control:focus,
+    #preferencesModal .form-control:focus {
+        border-color: #57C5E4;
+        box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+        outline: none;
+    }
+    #preferencesModal .form-check-input:checked {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+    }
 </style>
 {% endblock %}
 
@@ -358,7 +383,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light modal-footer-btn" data-bs-dismiss="modal" style="background-color: #dee2e6; color: #495057;">cancel</button>
+                <button type="button" class="btn btn-light modal-footer-btn" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary modal-footer-btn fw-bold" onclick="addClass()">Add Class</button>
             </div>
         </div>
@@ -390,7 +415,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light modal-footer-btn" data-bs-dismiss="modal" style="background-color: #dee2e6; color: #495057;">close</button>
+                <button type="button" class="btn btn-light modal-footer-btn" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary modal-footer-btn fw-bold" onclick="savePreferences()">Save Settings</button>
             </div>
         </div>

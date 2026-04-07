@@ -597,14 +597,73 @@
         display: none !important;
     }
 
-    /* Modal */
-    .modal-footer-btn {
-        height: 38px;
-        min-width: 120px;
+    /* ── Poll Modal ── */
+    #createPollModal .modal-header {
+        justify-content: center;
+        border-bottom: 1px solid #e5e7eb;
+        position: relative;
+    }
+    #createPollModal .modal-title {
+        flex: 1;
+        text-align: center;
+        font-weight: 700;
+        color: #0B1E33;
+        font-family: 'Inter', sans-serif;
+    }
+    #createPollModal .btn-close {
+        position: absolute;
+        right: 1rem;
+    }
+    #createPollModal .modal-footer {
+        justify-content: center;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        padding-bottom: 1.25rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    #createPollModal .modal-footer .btn {
+        min-width: 130px;
+        height: 40px;
+        border-radius: 9999px !important;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 0.375rem;
+    }
+    #createPollModal .btn-primary {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+    }
+    #createPollModal .btn-primary:hover {
+        background-color: #3BA8C8 !important;
+        border-color: #3BA8C8 !important;
+    }
+    #createPollModal .btn-light {
+        background-color: #e5e7eb !important;
+        color: #374151 !important;
+        border-color: #e5e7eb !important;
+    }
+    #createPollModal .form-label,
+    #createPollModal .form-check-label {
+        font-family: 'Inter', sans-serif;
+        font-weight: 400;
+        color: #0B1E33;
+    }
+    #createPollModal .form-control {
+        font-family: 'Inter', sans-serif;
+        color: #0B1E33;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+    }
+    #createPollModal .form-control:focus {
+        border-color: #57C5E4;
+        box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+        outline: none;
+    }
+    #createPollModal .form-check-input:checked {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
     }
 </style>
 {% endblock %}
@@ -769,8 +828,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light modal-footer-btn" data-bs-dismiss="modal" style="background-color: #dee2e6; color: #495057;">cancel</button>
-                <button type="button" class="btn btn-primary modal-footer-btn fw-bold" onclick="createPoll()">Start Poll</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createPoll()">Start Poll</button>
             </div>
         </div>
     </div>

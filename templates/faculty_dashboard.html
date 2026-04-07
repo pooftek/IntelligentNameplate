@@ -189,6 +189,7 @@
     .fac-section-card {
         background-color: #0B1E33;
         border-radius: var(--card-border-radius);
+        box-shadow: 0 8px 24px rgba(11,30,51,0.22);
         padding: clamp(0.75rem, 1.5vh, 1.25rem) clamp(0.75rem, 1.5vw, 1.25rem);
         display: flex;
         flex-direction: column;
@@ -276,6 +277,8 @@
         gap: 0.75rem;
         flex: 1;
         min-height: 0;
+        padding-bottom: 0.5rem;
+        align-items: stretch;
     }
 
     .live-metric-item {
@@ -283,8 +286,10 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        padding: 0.75rem;
+        padding: 0.75rem 0.5rem;
         border-radius: 10px;
+        min-width: 0;
+        overflow: hidden;
     }
 
     .live-metric-item.attendance,
@@ -301,12 +306,17 @@
         color: #FFFFFF;
         margin-bottom: 0.2rem;
         line-height: 1;
+        white-space: nowrap;
     }
 
     .live-metric-label {
         font-size: clamp(0.65rem, 1.2vh, 0.9rem);
         font-weight: 500;
         color: #9ca3af;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
 
     .live-metric-item.thumbs-up .live-metric-label,
@@ -474,22 +484,100 @@
     }
 
     /* ── Settings Tab ── */
-    .fac-settings-container {
-        max-width: 600px;
-        padding: 1rem 0;
+    /* ── Settings Tab Card ── */
+    .fac-settings-card {
+        background-color: #0B1E33;
+        border-radius: var(--card-border-radius);
+        box-shadow: 0 8px 24px rgba(11,30,51,0.22);
+        padding: 0 3rem;
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
+        display: flex;
+        flex-direction: column;
     }
 
-    .fac-settings-container .form-check-label {
-        color: #0B1E33;
-        font-size: 1rem;
+    .fac-settings-title {
+        text-align: center;
+        font-weight: 700;
+        font-size: 2.2rem;
+        color: #FFFFFF;
+        margin: 0;
     }
 
-    .fac-settings-container h5,
-    .fac-settings-container h6 {
-        color: #0B1E33;
+    .fac-settings-form {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .fac-settings-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0.5rem 0;
+    }
+
+    .fac-settings-section-bordered {
+        border-top: 3px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .fac-settings-save-section {
+        align-items: center;
+    }
+
+    .fac-settings-section-title {
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: #FFFFFF;
+        margin: 0 0 1rem;
+    }
+
+    .fac-settings-card .form-check {
+        margin-bottom: 0.85rem;
+    }
+
+    .fac-settings-card .form-check:last-child {
+        margin-bottom: 0;
+    }
+
+    .fac-settings-card .form-check-label {
+        color: #FFFFFF;
+        font-weight: 400;
+        font-size: 1.15rem;
+    }
+
+    .fac-settings-card .form-check-input {
+        background-color: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.35);
+        cursor: pointer;
+        width: 2.5em;
+        height: 1.35em;
+        margin-top: 0.2em;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .fac-settings-card .form-check-input:checked {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+    }
+
+    .btn-live-settings-save {
+        border-radius: 9999px;
+        background-color: #57C5E4;
+        color: #FFFFFF;
+        border: none;
         font-weight: 600;
+        font-size: 1.15rem;
+        padding: 0.65rem 2.75rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
     }
+
+    .btn-live-settings-save:hover { background-color: #3BA8C8; }
 
     /* ── Branding ── */
     .fac-branding {
@@ -585,42 +673,38 @@
 
         <!-- Settings Tab -->
         <div id="settingsTab" class="fac-tab-pane" style="display: none;">
-            <div id="settingsContent" class="fac-tab-pane">
-                <div class="fac-settings-container">
-                    <h5 class="mb-4">Class Settings</h5>
+            <div id="settingsContent" class="fac-tab-pane" style="align-items:center;">
+                <div class="fac-settings-card" id="settingsCard">
+                    <form id="liveSettingsForm" class="fac-settings-form">
 
-                    <form id="liveSettingsForm">
-                        <h6 class="mb-3">Display Preferences</h6>
-                        <div class="form-check form-switch mb-4">
-                            <input class="form-check-input" type="checkbox" id="liveShowFirstNameOnly">
-                            <label class="form-check-label" for="liveShowFirstNameOnly">
-                                Show First Name Only
-                            </label>
+                        <div class="fac-settings-section fac-settings-save-section">
+                            <h4 class="fac-settings-title">Class Settings</h4>
                         </div>
 
-                        <div class="form-check form-switch mb-4">
-                            <input class="form-check-input" type="checkbox" id="liveQuietMode">
-                            <label class="form-check-label" for="liveQuietMode">
-                                Quiet Mode
-                            </label>
+                        <div class="fac-settings-section fac-settings-section-bordered">
+                            <p class="fac-settings-section-title">Display Preferences</p>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="liveShowFirstNameOnly">
+                                <label class="form-check-label" for="liveShowFirstNameOnly">Show First Name Only</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="liveQuietMode">
+                                <label class="form-check-label" for="liveQuietMode">Quiet Mode</label>
+                            </div>
                         </div>
 
-                        <hr class="my-4">
-
-                        <h6 class="mb-3">Attendance Settings</h6>
-                        <div class="form-check form-switch mb-4">
-                            <input class="form-check-input" type="checkbox" id="liveExcludeFromGrading">
-                            <label class="form-check-label" for="liveExcludeFromGrading">
-                                Exclude This Session from Grading
-                            </label>
-                            <small class="form-text text-muted d-block mt-1">
-                                When enabled, attendance for this class session will not count toward student grades.
-                            </small>
+                        <div class="fac-settings-section fac-settings-section-bordered">
+                            <p class="fac-settings-section-title">Attendance Settings</p>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="liveExcludeFromGrading">
+                                <label class="form-check-label" for="liveExcludeFromGrading">Exclude This Session from Grading</label>
+                            </div>
                         </div>
 
-                        <div class="d-flex justify-content-end mt-4">
-                            <button type="button" class="btn btn-primary" onclick="saveLiveSettings()">Save Settings</button>
+                        <div class="fac-settings-section fac-settings-section-bordered fac-settings-save-section">
+                            <button type="button" class="btn-live-settings-save" onclick="saveLiveSettings()">Save Settings</button>
                         </div>
+
                     </form>
                 </div>
             </div>
@@ -1269,5 +1353,25 @@ async function stopClass() {
         window.location.href = `/classroom/${classId}`;
     }
 }
+
+// Size settings card to align with Settings tab pill edges
+function alignSettingsCard() {
+    const settingsBtn = document.querySelector('.fac-tabs .tab-pill:nth-child(3)');
+    const content = document.querySelector('.fac-content');
+    const card = document.getElementById('settingsCard');
+    if (!settingsBtn || !content || !card) return;
+
+    const tabRect = settingsBtn.getBoundingClientRect();
+    const contentRect = content.getBoundingClientRect();
+    const leftOffset = tabRect.left - contentRect.left;
+    const cardWidth = contentRect.width - 2 * leftOffset;
+
+    if (cardWidth > 100) {
+        card.style.width = cardWidth + 'px';
+    }
+}
+
+window.addEventListener('load', alignSettingsCard);
+window.addEventListener('resize', alignSettingsCard);
 </script>
 {% endblock %}

@@ -101,6 +101,7 @@
         border-radius: var(--card-border-radius);
         cursor: pointer;
         transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 8px 24px rgba(11,30,51,0.22);
         text-align: center;
         display: flex;
         flex-direction: column;
@@ -178,19 +179,126 @@
         display: inline-block;
     }
 
-    .modal-body-scrollable {
-        max-height: 60vh;
-        overflow-y: auto;
-        overflow-x: hidden;
+    /* ── Settings Modal ── */
+    .settings-modal-dialog {
+        max-width: 560px;
     }
 
-    .modal-footer-btn {
-        min-width: 120px;
-        height: 38px;
+    #settingsModal .modal-content {
+        background-color: #FFFFFF;
+        border: none;
+        border-radius: var(--card-border-radius);
+        position: relative;
+    }
+
+    .settings-modal-body {
+        padding: 2rem 2.5rem 2rem;
+    }
+
+    .settings-close-btn {
+        position: absolute;
+        top: 1.1rem;
+        right: 1.25rem;
+        opacity: 0.5;
+    }
+
+    .settings-close-btn:hover { opacity: 1; }
+
+    .settings-card-title {
+        text-align: center;
+        font-weight: 700;
+        font-size: 1.4rem;
+        color: #0B1E33;
+        margin: 0 0 1.25rem;
+    }
+
+    .settings-divider {
+        border: none;
+        border-top: 3px solid #e5e7eb;
+        margin: 1.1rem 0;
+    }
+
+    .settings-section-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #0B1E33;
+        margin: 0 0 0.75rem;
+    }
+
+    #settingsModal .form-label {
+        color: #0B1E33;
+        font-size: 0.875rem;
+        margin-bottom: 0.3rem;
+    }
+
+    #settingsModal .form-control {
+        background-color: #FFFFFF;
+        border: 1px solid #d1d5db;
+        color: #0B1E33;
+        border-radius: 8px;
+    }
+
+    #settingsModal .form-control:focus {
+        background-color: #FFFFFF;
+        border-color: #57C5E4;
+        color: #0B1E33;
+        box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+    }
+
+    #settingsModal .form-check-label {
+        color: #0B1E33;
+        font-weight: 400;
+    }
+
+    #settingsModal .form-check-input {
+        background-color: #e5e7eb;
+        border-color: #d1d5db;
+        cursor: pointer;
+    }
+
+    #settingsModal .form-check-input:checked {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+    }
+
+    .btn-settings-save {
+        border-radius: 9999px;
+        background-color: #57C5E4;
+        color: #FFFFFF;
+        border: none;
+        font-weight: 500;
+        font-size: 1rem;
+        padding: 0.6rem 2.5rem;
+        cursor: pointer;
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        border-radius: 0.375rem;
+    }
+
+    .btn-settings-save:hover { background-color: #3BA8C8; }
+
+    .btn-delete-class {
+        background-color: rgba(220, 53, 69, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(220, 53, 69, 0.35);
+        border-radius: 9999px;
+        padding: 0.4rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .btn-delete-class:hover {
+        background-color: rgba(220, 53, 69, 0.28);
+    }
+
+    .settings-danger-note {
+        color: #9ca3af;
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0;
     }
 </style>
 {% endblock %}
@@ -251,14 +359,16 @@
 
 <!-- Settings Modal -->
 <div class="modal fade" id="settingsModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered settings-modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Settings</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body modal-body-scrollable">
-                <h6 class="mb-3">Class Information</h6>
+            <div class="settings-modal-body">
+                <button type="button" class="btn-close settings-close-btn" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                <h4 class="settings-card-title">Class Settings</h4>
+                <hr class="settings-divider">
+
+                <!-- Class Information -->
+                <p class="settings-section-title">Class Information</p>
                 <form id="settingsForm">
                     <div class="mb-3">
                         <label for="className" class="form-label">Class Title</label>
@@ -269,38 +379,36 @@
                         <input type="text" class="form-control" id="classCode" value="{{ class_obj.class_code }}" required>
                     </div>
                 </form>
+                <hr class="settings-divider">
 
-                <hr class="my-4">
-
-                <h6 class="mb-3">Preferences</h6>
+                <!-- Display Preferences -->
+                <p class="settings-section-title">Display Preferences</p>
                 <form id="preferencesForm">
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="showFirstNameOnly"
                                {{ 'checked' if settings.show_first_name_only else '' }}>
-                        <label class="form-check-label" for="showFirstNameOnly">
-                            Show First Name Only
-                        </label>
+                        <label class="form-check-label" for="showFirstNameOnly">Show First Name Only</label>
                     </div>
-                    <div class="form-check form-switch mb-3">
+                    <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="quietMode"
                                {{ 'checked' if settings.quiet_mode else '' }}>
-                        <label class="form-check-label" for="quietMode">
-                            Quiet Mode
-                        </label>
+                        <label class="form-check-label" for="quietMode">Quiet Mode</label>
                     </div>
                 </form>
+                <hr class="settings-divider">
 
-                <hr class="my-4">
-
-                <h6 class="mb-3 text-danger">Danger Zone</h6>
-                <button type="button" class="btn btn-danger" onclick="deleteClass()">
+                <!-- Danger Zone -->
+                <p class="settings-section-title">Danger Zone</p>
+                <button type="button" class="btn-delete-class" onclick="deleteClass()">
                     <i class="bi bi-trash"></i> Delete Class
                 </button>
-                <p class="text-muted small mt-2">This action cannot be undone. All class data will be permanently deleted.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light modal-footer-btn" data-bs-dismiss="modal" style="background-color: #dee2e6; color: #495057;">close</button>
-                <button type="button" class="btn btn-primary modal-footer-btn fw-bold" onclick="saveSettings()">Save Settings</button>
+                <p class="settings-danger-note">This action cannot be undone. All class data will be permanently deleted.</p>
+                <hr class="settings-divider">
+
+                <!-- Save -->
+                <div class="d-flex justify-content-center">
+                    <button type="button" class="btn-settings-save" onclick="saveSettings()">Save Settings</button>
+                </div>
             </div>
         </div>
     </div>
